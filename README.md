@@ -7,7 +7,7 @@ It uses a chain of codecs - a set of plugin-like encoder and decoders
 that can transform the data, according to a known policy, during setup
 with a specified configuration for each codec.
 
-## Why this exists?
+## Why do you write this program?
 
 The program allows a user to specify their own layout, error correction
 engine and specific parameters about the pipeline, to experiment with
@@ -19,7 +19,7 @@ realized I'd want to learn more about the trade-offs of using algorithms
 like BCH and Reed-Solomon and what works best in many use-cases I'd like
 to experiment on.
 
-## How can I use this?
+## How can I use this program?
 
 This project is under heavy development.
 However, presumably there would be a YAML file containing the chains of
