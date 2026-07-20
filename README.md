@@ -14,7 +14,7 @@ engine and specific parameters about the pipeline, to experiment with
 management of data and metadata on a flash chip, and discover best paths
 and new possible ways of optimizing data capacity & retention.
 
-After `ufedm` proved to work fine (with Hamming SECDEC algorithm), I
+After `ufedm` proved to work fine (with Hamming SECDED algorithm), I
 realized I'd want to learn more about the trade-offs of using algorithms
 like BCH and Reed-Solomon and what works best in many use-cases I'd like
 to experiment on.
