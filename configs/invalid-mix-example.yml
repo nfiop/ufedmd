@@ -1,0 +1,53 @@
+codecs:
+  - name: basic_xor
+    type: xor
+    mask: 0b214cb234dfaaaaaaaaaaa
+    buf: oob
+    offset: 812
+    len: 4
+
+  - name: swap_bytes
+    type: bytes_swap
+    orig_buf: data
+    dest_buf: oob
+    orig_off: 800
+    dest_off: 8
+    len: 4
+
+  - name: basic_rs
+    type: rs
+
+  - name: bch
+    type: bch
+    m: 11
+    t: 4
+    polynom: 0x4230
+    chunk_size: 512
+
+  - name: fast_ldpc
+    type: ldpc
+
+pipelines:
+  - name: simple_ecc
+    codecs:
+      - bch
+      - swap_bytes2
+
+  - name: ldpc_ecc
+    codecs:
+      - fast_ldpc
+
+partitions:
+  - name: simple_data
+    pipeline: simple_ecc
+    eraseblocks: 0-1023
+
+  - name: high_integrity
+    pipeline: ldpc_ecc
+    eraseblocks: 1023
+    pages: 0-60
+
+  - name: simple_data_end
+    pipeline: simple_ecc
+    eraseblocks: 1023
+    pages: 61-63
