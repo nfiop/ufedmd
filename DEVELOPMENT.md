@@ -37,9 +37,6 @@ After that, it tries to initialize the pipelines. Each pipeline is assigned
 an index starting at 1. Index 0 is reserved for the automatic NACK pipeline.
 The max index is 0xff so an index number occupies a `u16`.
 
-If there's a need for more than 65535 pipelines for one MTD then it should be
-considered to make a partition of such device using `mtdpartikr`.
-
 The reasoning for using a `u16` is that modern TLC/QLC NAND flash chips might
 have more than 256 pages per eraseblocks. For such cases, while not very recommended -
 a user can write their configuration, adding specific partitions and specifying specific
