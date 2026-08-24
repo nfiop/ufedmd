@@ -50,7 +50,7 @@ struct yaml_partition_obj {
 };
 
 struct yaml_section {
-	void **objs;
+	void *objs;
 	size_t objs_count;
 };
 

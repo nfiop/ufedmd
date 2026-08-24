@@ -21,7 +21,7 @@ struct key_value_pair {
 };
 
 struct yaml_string_sequence {
-	yaml_str_param_t **strings;
+	yaml_str_param_t *strings;
 	size_t strings_count;
 };
 

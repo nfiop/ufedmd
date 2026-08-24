@@ -40,10 +40,12 @@ yaml_return_code_t allocate_typed_array_for_section(
 yaml_return_code_t allocate_pairs_array(
     struct key_value_pair **arrp, size_t count);
 yaml_return_code_t yaml_mapping_get_objects_count(
-    yaml_document_t *doc, yaml_node_t *node, size_t *count);
+    yaml_node_t *node, size_t *count);
 
 yaml_return_code_t build_str_param_from_node_val(yaml_document_t *doc,
     yaml_str_param_t *str, yaml_node_t *parent_node, yaml_node_pair_t *pair,
     const char *key_name);
+
+const char *return_code_value_to_string(yaml_return_code_enum_t rc);
 
 #endif

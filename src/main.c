@@ -7,20 +7,31 @@
 #include <stdlib.h>
 #include <yaml.h>
 
+#include "config/common.h"
 #include "config/file_parser.h"
 
 struct yaml_mtd_scheme scheme;
 
-static int parse_config_file(FILE *fp)
+static void parse_config_file(FILE *fp)
 {
 	yaml_return_code_t ret;
+	yaml_node_t *node;
 
 	ret = parse_yaml_file(fp, &scheme);
 
-	if (ret != YAML_RC_SUCCESS)
-		return -1;
-
-	return 0;
+	if (!YAML_RC_CHECK_SUCCESS(ret)) {
+		fprintf(
+		    stderr, "Error: %s\n", return_code_value_to_string(ret.rc));
+		if (ret.offending != NULL) {
+			node = ret.offending;
+			fprintf(stderr,
+			    "Offending node: lines %zu-%zu, columns %zu-%zu\n",
+			    node->start_mark.line + 1, node->end_mark.line + 1,
+			    node->start_mark.column + 1,
+			    node->end_mark.column + 1);
+		}
+		exit(1);
+	}
 }
 
 int main(int argc, char **argv)
@@ -38,7 +49,7 @@ int main(int argc, char **argv)
 		goto exit;
 	}
 
-	ret = parse_config_file(fp);
+	parse_config_file(fp);
 
 	fclose(fp);
 

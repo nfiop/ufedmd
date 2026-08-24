@@ -9,9 +9,10 @@
 
 #include "config/common.h"
 #include "config/file_parser.h"
+#include "config/return_codes.h"
 #include "config/section.h"
 
-static int parse_root_document(
+static yaml_return_code_t parse_root_document(
     yaml_document_t *doc, yaml_node_t *node, struct yaml_mtd_scheme *scheme)
 {
 	yaml_return_code_t ret;
@@ -20,7 +21,7 @@ static int parse_root_document(
 	yaml_node_t *value;
 
 	if (node->type != YAML_MAPPING_NODE) {
-		ret = YAML_RC_NODE_IS_NOT_MAPPING;
+		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_MAPPING);
 		goto exit;
 	}
 
@@ -29,37 +30,40 @@ static int parse_root_document(
 		key = yaml_document_get_node(doc, pair->key);
 		value = yaml_document_get_node(doc, pair->value);
 		if (!key || !value) {
-			ret = YAML_RC_INVALID_OBJECT_NODE;
+			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
 			goto exit;
 		}
 
 		ret = parse_section(doc, scheme, key, value);
-		if (ret < 0)
+		if (!YAML_RC_CHECK_SUCCESS(ret))
 			goto exit;
 	}
 
-	ret = 0;
+	YAML_RC_SET_SUCCESS(ret);
 exit:
+
 	return ret;
 }
 
 yaml_return_code_t parse_yaml_file(FILE *fp, struct yaml_mtd_scheme *scheme)
 {
-	yaml_return_code_t ret = YAML_RC_SUCCESS;
+	yaml_return_code_t ret;
 
 	yaml_parser_t parser;
 	yaml_document_t document;
 
+	YAML_RC_SET_SUCCESS(ret);
+
 	if (!yaml_parser_initialize(&parser)) {
 		fprintf(stderr, "Failed to initialize parser\n");
-		ret = YAML_RC_PARSER_INITIALIZE_FAILED;
+		YAML_RC_SET(ret, YAML_RC_PARSER_INITIALIZE_FAILED);
 		goto exit;
 	}
 
 	yaml_parser_set_input_file(&parser, fp);
 
 	if (!yaml_parser_load(&parser, &document)) {
-		ret = YAML_RC_PARSER_LOAD_FAILED;
+		YAML_RC_SET(ret, YAML_RC_PARSER_LOAD_FAILED);
 		goto exit;
 	}
 
@@ -68,7 +72,7 @@ yaml_return_code_t parse_yaml_file(FILE *fp, struct yaml_mtd_scheme *scheme)
 	if (root) {
 		ret = parse_root_document(&document, root, scheme);
 	} else {
-		ret = YAML_RC_NO_ROOT_NODE;
+		YAML_RC_SET(ret, YAML_RC_NO_ROOT_NODE);
 	}
 
 	yaml_document_delete(&document);

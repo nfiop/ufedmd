@@ -1,6 +1,9 @@
 codecs:
   - name: basic_rs
     type: rs
+    n: 255
+    k: 223
+    polynomial: 0x11D
 
   - name: bch4
     type: bch

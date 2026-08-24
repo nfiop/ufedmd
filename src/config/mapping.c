@@ -47,19 +47,28 @@ yaml_return_code_t parse_mapping_object(
 	    pair < node->data.mapping.pairs.top; pair++) {
 		key = yaml_document_get_node(doc, pair->key);
 		value = yaml_document_get_node(doc, pair->value);
-		if (!key || !value) {
-			ret = YAML_RC_INVALID_MAPPING_NODE;
+		if (!key) {
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_INVALID_MAPPING_NODE_ENTRY_KEY, node);
+			goto free_parsed_nodes;
+		}
+
+		if (!value) {
+			YAML_RC_SET_WITH_OFFENDING_NODE(ret,
+			    YAML_RC_INVALID_MAPPING_NODE_ENTRY_VALUE, node);
 			goto free_parsed_nodes;
 		}
 
 		switch (value->type) {
-		case YAML_MAPPING_NODE:
-			return YAML_RC_INVALID_OBJECT_NODE;
+		case YAML_MAPPING_NODE: {
+			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+			return ret;
+		}
 		case YAML_SEQUENCE_NODE:
 		case YAML_SCALAR_NODE: {
 			ret = handle->parse_entry(handle->obj,
 			    (const char *)key->data.scalar.value, value);
-			if (ret != YAML_RC_SUCCESS)
+			if (!YAML_RC_CHECK_SUCCESS(ret))
 				goto free_parsed_nodes;
 		}
 
@@ -69,7 +78,7 @@ yaml_return_code_t parse_mapping_object(
 		}
 	}
 
-	ret = YAML_RC_SUCCESS;
+	YAML_RC_SET_SUCCESS(ret);
 	goto exit;
 
 free_parsed_nodes:
