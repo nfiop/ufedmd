@@ -61,7 +61,8 @@ yaml_return_code_t parse_mapping_object(
 
 		switch (value->type) {
 		case YAML_MAPPING_NODE: {
-			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_INVALID_OBJECT_NODE, value);
 			goto free_parsed_nodes;
 		}
 		case YAML_SEQUENCE_NODE:
@@ -70,10 +71,12 @@ yaml_return_code_t parse_mapping_object(
 			    (const char *)key->data.scalar.value, value);
 			if (!YAML_RC_CHECK_SUCCESS(ret))
 				goto free_parsed_nodes;
+			break;
 		}
 
 		default:
-			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_INVALID_OBJECT_NODE, value);
 			goto free_parsed_nodes;
 		}
 	}

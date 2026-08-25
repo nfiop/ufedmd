@@ -31,6 +31,8 @@ typedef enum yaml_return_code {
 	YAML_RC_INVALID_MAPPING_NODE_ENTRY_VALUE,
 	YAML_RC_COMPARING_WITH_NON_SCALAR,
 	YAML_RC_KEY_NOT_FOUND,
+	YAML_RC_INVALID_PAIR_POSITION,
+	YAML_RC_SCALAR_COMPAREE_TOO_BIG,
 
 	/* Parser errors from LibYAML */
 	YAML_RC_NO_ROOT_NODE,
@@ -63,6 +65,11 @@ typedef struct {
 #define YAML_RC_SET_WITH_OFFENDING_NODE(__var_name, __rc, __node)              \
 	do {                                                                   \
 		__var_name.rc = __rc;                                          \
+		__var_name.offending = __node;                                 \
+	} while (0)
+
+#define YAML_RC_SET_OFFENDING_NODE(__var_name, __node)                         \
+	do {                                                                   \
 		__var_name.offending = __node;                                 \
 	} while (0)
 

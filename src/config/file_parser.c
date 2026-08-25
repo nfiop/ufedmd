@@ -21,7 +21,8 @@ static yaml_return_code_t parse_root_document(
 	yaml_node_t *value;
 
 	if (node->type != YAML_MAPPING_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_MAPPING);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_MAPPING, node);
 		goto exit;
 	}
 
@@ -30,7 +31,8 @@ static yaml_return_code_t parse_root_document(
 		key = yaml_document_get_node(doc, pair->key);
 		value = yaml_document_get_node(doc, pair->value);
 		if (!key || !value) {
-			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_INVALID_OBJECT_NODE, node);
 			goto exit;
 		}
 

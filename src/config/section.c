@@ -56,7 +56,8 @@ static yaml_return_code_t prepare_codec_object(
 	size_t pairs_count;
 
 	if (node->type != YAML_MAPPING_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_MAPPING);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_MAPPING, node);
 		goto exit;
 	}
 
@@ -76,8 +77,11 @@ static yaml_return_code_t prepare_codec_object(
 
 	ret = allocate_pairs_array(&obj->dict.key_val_pairs, pairs_count - 2);
 	if (!YAML_RC_CHECK_SUCCESS(ret)) {
+		YAML_RC_SET_OFFENDING_NODE(ret, node);
 		goto exit;
 	}
+
+	obj->dict.key_value_pairs_count = pairs_count - 2;
 
 	YAML_RC_SET_SUCCESS(ret);
 
@@ -134,7 +138,8 @@ yaml_return_code_t codec_parse_entry(
 
 	/* Currently all entries of all codec objects should be scalars */
 	if (child_node->type != YAML_SCALAR_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SCALAR);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SCALAR, child_node);
 		goto exit;
 	}
 
@@ -146,7 +151,8 @@ yaml_return_code_t codec_parse_entry(
 	/* Name field */
 	case 0: {
 		if (codec_obj->name.str || codec_obj->name.len) {
-			YAML_RC_SET(ret, YAML_RC_ENTRY_ALREADY_PARSED);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_ENTRY_ALREADY_PARSED, child_node);
 			goto exit;
 		}
 		return create_string_param(&codec_obj->name, child_node);
@@ -154,7 +160,8 @@ yaml_return_code_t codec_parse_entry(
 	/* Type field */
 	case 1: {
 		if (codec_obj->type.str || codec_obj->type.len) {
-			YAML_RC_SET(ret, YAML_RC_ENTRY_ALREADY_PARSED);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_ENTRY_ALREADY_PARSED, child_node);
 			goto exit;
 		}
 		return create_string_param(&codec_obj->type, child_node);
@@ -182,7 +189,8 @@ static yaml_return_code_t parse_codecs_section(
 	struct yaml_codec_obj *objs;
 
 	if (node->type != YAML_SEQUENCE_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SEQUENCE);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SEQUENCE, node);
 		goto exit;
 	}
 
@@ -302,29 +310,33 @@ yaml_return_code_t pipeline_parse_entry(
 	struct yaml_pipeline_obj *pipeline_obj = obj;
 
 	ret = compare_key_string_value(key, &idx, pipeline_fields, 2);
-	if (!YAML_RC_CHECK_SUCCESS(ret))
+	if (!YAML_RC_CHECK_SUCCESS(ret)) {
+		YAML_RC_SET_OFFENDING_NODE(ret, child_node);
 		return ret;
+	}
 
 	switch (idx) {
 	/* Name field */
 	case 0: {
 		/* Already allocated, reject */
 		if (pipeline_obj->name.str || pipeline_obj->name.len) {
-			YAML_RC_SET(ret, YAML_RC_ENTRY_ALREADY_PARSED);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_ENTRY_ALREADY_PARSED, child_node);
 			goto exit;
 		}
 		return create_string_param(&pipeline_obj->name, child_node);
 	}
-	/* Type field */
+	/* Codecs field */
 	case 1: {
 		/* Already allocated, reject */
 		if (pipeline_obj->codecs.strings ||
 		    pipeline_obj->codecs.strings_count) {
-			YAML_RC_SET(ret, YAML_RC_ENTRY_ALREADY_PARSED);
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_ENTRY_ALREADY_PARSED, child_node);
 			goto exit;
 		}
 		return allocate_typed_array_for_section(child_node,
-		    (void **)pipeline_obj->codecs.strings,
+		    (void **)&pipeline_obj->codecs.strings,
 		    &pipeline_obj->codecs.strings_count,
 		    sizeof(yaml_str_param_t));
 	}
@@ -341,7 +353,8 @@ static yaml_return_code_t prepare_pipeline_object(yaml_node_t *node)
 	size_t pairs_count;
 
 	if (node->type != YAML_MAPPING_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_MAPPING);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_MAPPING, node);
 		goto exit;
 	}
 
@@ -377,7 +390,8 @@ static yaml_return_code_t parse_pipelines_section(
 	struct yaml_pipeline_obj *objs;
 
 	if (node->type != YAML_SEQUENCE_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SEQUENCE);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SEQUENCE, node);
 		goto exit;
 	}
 
@@ -524,8 +538,10 @@ check_non_mandatory_fields:
 
 	ret = compare_key_string_value(
 	    key, &idx, partition_non_mandatory_fields, 2);
-	if (!YAML_RC_CHECK_SUCCESS(ret))
+	if (!YAML_RC_CHECK_SUCCESS(ret)) {
+		YAML_RC_SET_OFFENDING_NODE(ret, child_node);
 		return ret;
+	}
 
 	switch (idx) {
 	/* Eraseblocks field */
@@ -553,7 +569,8 @@ static yaml_return_code_t prepare_partition_object(yaml_node_t *node)
 	size_t pairs_count;
 
 	if (node->type != YAML_MAPPING_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_MAPPING);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_MAPPING, node);
 		goto exit;
 	}
 
@@ -590,7 +607,8 @@ static yaml_return_code_t parse_partitions_section(
 	struct yaml_partition_obj *objs;
 
 	if (node->type != YAML_SEQUENCE_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SEQUENCE);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SEQUENCE, node);
 		return ret;
 	}
 

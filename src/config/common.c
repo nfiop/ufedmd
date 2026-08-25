@@ -14,6 +14,7 @@ yaml_return_code_t compare_key_string_value(
 {
 	size_t i;
 	size_t scalar_len;
+	size_t checked_str_len;
 	yaml_return_code_t ret;
 
 	if (!strings_count) {
@@ -28,6 +29,14 @@ yaml_return_code_t compare_key_string_value(
 	}
 
 	for (i = 0; i < strings_count; i++) {
+		checked_str_len = strlen(strings[i]);
+		if (checked_str_len > MAX_NAME_LEN) {
+			YAML_RC_SET(ret, YAML_RC_SCALAR_COMPAREE_TOO_BIG);
+			goto exit;
+		}
+
+		if (checked_str_len != scalar_len)
+			continue;
 		if (!strncmp((const char *)string, strings[i], scalar_len)) {
 			*index = (int)i;
 			YAML_RC_SET(ret, YAML_RC_SUCCESS);
@@ -46,11 +55,13 @@ yaml_return_code_t compare_key_scalar_value(
 	yaml_return_code_t ret;
 
 	if (node->type != YAML_SCALAR_NODE) {
-		YAML_RC_SET(ret, YAML_RC_COMPARING_WITH_NON_SCALAR);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_COMPARING_WITH_NON_SCALAR, node);
 	}
 
 	if (!strings_count) {
-		YAML_RC_SET(ret, YAML_RC_EMPTY_COMPARE_SET);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_EMPTY_COMPARE_SET, node);
 		goto exit;
 	}
 
@@ -66,17 +77,30 @@ yaml_return_code_t compare_key_scalar_one_value(
 {
 	yaml_return_code_t ret;
 	size_t scalar_len;
+	size_t str_len;
 
 	if (node->type != YAML_SCALAR_NODE) {
-		YAML_RC_SET(ret, YAML_RC_COMPARING_WITH_NON_SCALAR);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_COMPARING_WITH_NON_SCALAR, node);
 		goto exit;
 	}
 
 	scalar_len = strlen((const char *)node->data.scalar.value);
 	if (scalar_len > MAX_NAME_LEN) {
-		YAML_RC_SET(ret, YAML_RC_SCALAR_LENGTH_TOO_BIG);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_SCALAR_LENGTH_TOO_BIG, node);
 		goto exit;
 	}
+
+	str_len = strlen(string);
+	if (str_len > MAX_NAME_LEN) {
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_SCALAR_COMPAREE_TOO_BIG, node);
+		goto exit;
+	}
+
+	if (str_len != scalar_len)
+		goto not_matching;
 
 	if (!strncmp(
 		(const char *)node->data.scalar.value, string, scalar_len)) {
@@ -84,7 +108,9 @@ yaml_return_code_t compare_key_scalar_one_value(
 		goto exit;
 	}
 
-	YAML_RC_SET(ret, YAML_RC_SCALAR_COMPARE_NO_MATCH);
+not_matching:
+	YAML_RC_SET_WITH_OFFENDING_NODE(
+	    ret, YAML_RC_SCALAR_COMPARE_NO_MATCH, node);
 exit:
 	return ret;
 }
@@ -92,22 +118,16 @@ exit:
 yaml_return_code_t yaml_sequence_get_objects_count(
     yaml_node_t *node, size_t *count)
 {
-	size_t tmp;
-	yaml_node_item_t *item;
 	yaml_return_code_t ret;
 
 	if (node->type != YAML_SEQUENCE_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SEQUENCE);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SEQUENCE, node);
 		goto exit;
 	}
 
-	tmp = 0;
-	for (item = node->data.sequence.items.start;
-	    item < node->data.sequence.items.top; item++) {
-		tmp++;
-	}
-
-	*count = tmp;
+	*count =
+	    (node->data.sequence.items.top - node->data.sequence.items.start);
 
 	YAML_RC_SET_SUCCESS(ret);
 exit:
@@ -142,27 +162,31 @@ yaml_return_code_t append_pair_to_dict(
 	struct key_value_pair *pair;
 
 	if (value->type != YAML_SCALAR_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SCALAR);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SCALAR, value);
 		goto exit;
 	}
 
 	if (dict->__used == dict->key_value_pairs_count) {
 		YAML_RC_SET_WITH_OFFENDING_NODE(
-		    ret, YAML_RC_INVALID_MAPPING_NODE, value);
+		    ret, YAML_RC_INVALID_PAIR_POSITION, value);
 		goto exit;
 	}
 
 	/* Create a unique key-value pair */
 	ret = find_key_value_pair(dict, &pair, key);
 	if (YAML_RC_CHECK_SUCCESS(ret)) {
-		YAML_RC_SET(ret, YAML_RC_ENTRY_ALREADY_PARSED);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_ENTRY_ALREADY_PARSED, value);
 		goto exit;
 	}
 
 	ret = create_key_value_pair(
 	    &dict->key_val_pairs[dict->__used], key, value);
-	if (!YAML_RC_CHECK_SUCCESS(ret))
+	if (!YAML_RC_CHECK_SUCCESS(ret)) {
+		YAML_RC_SET_OFFENDING_NODE(ret, value);
 		return ret;
+	}
 
 	dict->__used++;
 
@@ -176,13 +200,15 @@ yaml_return_code_t create_string_param(
 {
 	yaml_return_code_t ret;
 	if (value->type != YAML_SCALAR_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_SCALAR);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SCALAR, value);
 		goto exit;
 	}
 
 	param->str = strdup((const char *)value->data.scalar.value);
 	if (!param) {
-		YAML_RC_SET(ret, YAML_RC_MEMORY_ALLOCATION_FAILED);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_MEMORY_ALLOCATION_FAILED, value);
 		goto exit;
 	}
 
@@ -235,9 +261,20 @@ yaml_return_code_t find_key_value_pair(
 	yaml_return_code_t ret;
 	size_t idx;
 	struct key_value_pair *pair;
+	size_t key_str_len;
+
+	key_str_len = strlen(key);
+	if (key_str_len > MAX_NAME_LEN) {
+		YAML_RC_SET(ret, YAML_RC_SCALAR_COMPAREE_TOO_BIG);
+		goto exit;
+	}
 
 	for (idx = 0; idx < dict->__used; idx++) {
 		pair = &dict->key_val_pairs[idx];
+
+		if (pair->key.len != key_str_len)
+			continue;
+
 		if (!strncmp(pair->key.str, key, pair->key.len)) {
 			*pairp = pair;
 			YAML_RC_SET_SUCCESS(ret);
@@ -263,7 +300,8 @@ yaml_return_code_t allocate_typed_array_for_section(
 
 	arr = calloc(objs_count, struct_size);
 	if (!arr) {
-		YAML_RC_SET(ret, YAML_RC_MEMORY_ALLOCATION_FAILED);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_MEMORY_ALLOCATION_FAILED, node);
 		goto exit;
 	}
 
@@ -302,7 +340,8 @@ yaml_return_code_t yaml_mapping_get_objects_count(
 	YAML_RC_SET_SUCCESS(ret);
 
 	if (node->type != YAML_MAPPING_NODE) {
-		YAML_RC_SET(ret, YAML_RC_NODE_IS_NOT_MAPPING);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_MAPPING, node);
 		goto exit;
 	}
 
@@ -323,13 +362,14 @@ yaml_return_code_t build_str_param_from_node_val(yaml_document_t *doc,
 
 	if (pair == parent_node->data.mapping.pairs.top) {
 		YAML_RC_SET_WITH_OFFENDING_NODE(
-		    ret, YAML_RC_INVALID_MAPPING_NODE, parent_node);
+		    ret, YAML_RC_INVALID_PAIR_POSITION, parent_node);
 		goto exit;
 	}
 
 	key = yaml_document_get_node(doc, pair->key);
 	if (!key) {
-		YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_INVALID_OBJECT_NODE, parent_node);
 		goto exit;
 	}
 
@@ -340,7 +380,8 @@ yaml_return_code_t build_str_param_from_node_val(yaml_document_t *doc,
 
 	value = yaml_document_get_node(doc, pair->value);
 	if (!value) {
-		YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_INVALID_OBJECT_NODE, key);
 		goto exit;
 	}
 
@@ -388,6 +429,10 @@ const char *return_code_value_to_string(yaml_return_code_enum_t rc)
 		return "Compare with non scalar";
 	case YAML_RC_KEY_NOT_FOUND:
 		return "Key not found";
+	case YAML_RC_INVALID_PAIR_POSITION:
+		return "Invalid pair position";
+	case YAML_RC_SCALAR_COMPAREE_TOO_BIG:
+		return "Scalar comparee size limit exceeded";
 	case YAML_RC_NO_ROOT_NODE:
 		return "No root node";
 	case YAML_RC_PARSER_INITIALIZE_FAILED:
