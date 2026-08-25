@@ -62,7 +62,7 @@ yaml_return_code_t parse_mapping_object(
 		switch (value->type) {
 		case YAML_MAPPING_NODE: {
 			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
-			return ret;
+			goto free_parsed_nodes;
 		}
 		case YAML_SEQUENCE_NODE:
 		case YAML_SCALAR_NODE: {
@@ -74,7 +74,6 @@ yaml_return_code_t parse_mapping_object(
 
 		default:
 			goto free_parsed_nodes;
-			break;
 		}
 	}
 
