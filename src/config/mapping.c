@@ -73,6 +73,7 @@ yaml_return_code_t parse_mapping_object(
 		}
 
 		default:
+			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
 			goto free_parsed_nodes;
 		}
 	}
