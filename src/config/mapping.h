@@ -11,7 +11,7 @@
 #include <yaml.h>
 
 typedef yaml_return_code_t (*parse_func_t)(
-    void *obj, const char *key, yaml_node_t *child_node);
+    void *obj, const char *key, yaml_document_t *doc, yaml_node_t *child_node);
 typedef void (*cleanup_func_t)(void *obj, const char *key);
 
 struct mapping_handle {

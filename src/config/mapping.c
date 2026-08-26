@@ -68,7 +68,7 @@ yaml_return_code_t parse_mapping_object(
 		case YAML_SEQUENCE_NODE:
 		case YAML_SCALAR_NODE: {
 			ret = handle->parse_entry(handle->obj,
-			    (const char *)key->data.scalar.value, value);
+			    (const char *)key->data.scalar.value, doc, value);
 			if (!YAML_RC_CHECK_SUCCESS(ret))
 				goto free_parsed_nodes;
 			break;

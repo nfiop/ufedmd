@@ -129,12 +129,13 @@ remove_non_common_fields:
 }
 
 yaml_return_code_t codec_parse_entry(
-    void *obj, const char *key, yaml_node_t *child_node)
+    void *obj, const char *key, yaml_document_t *doc, yaml_node_t *child_node)
 {
 	yaml_return_code_t ret;
 	int idx;
 	struct yaml_dict *dict;
 	struct yaml_codec_obj *codec_obj = obj;
+	(void)doc;
 
 	/* Currently all entries of all codec objects should be scalars */
 	if (child_node->type != YAML_SCALAR_NODE) {
@@ -302,8 +303,72 @@ void pipeline_cleanup_entry(void *obj, const char *key)
 	return;
 }
 
+static void destroy_string_sequence(
+    struct yaml_string_sequence *seq, size_t max_idx)
+{
+	size_t idx;
+
+	for (idx = 0; idx < max_idx; idx++) {
+		destroy_string_param(&seq->strings[idx]);
+	}
+}
+
+static yaml_return_code_t parse_strings_sequence(
+    yaml_document_t *doc, yaml_node_t *node, struct yaml_string_sequence *seq)
+{
+	size_t item_idx;
+	yaml_return_code_t ret;
+	yaml_node_t *child;
+	yaml_node_item_t *item;
+
+	if (node->type != YAML_SEQUENCE_NODE) {
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_NODE_IS_NOT_SEQUENCE, node);
+		goto exit;
+	}
+
+	ret = allocate_typed_array_for_section(node, (void **)&seq->strings,
+	    &seq->strings_count, sizeof(yaml_str_param_t));
+	if (!YAML_RC_CHECK_SUCCESS(ret)) {
+		goto exit;
+	}
+
+	/* A series of YAML string scalar nodes should appear now */
+	item_idx = 0;
+	for (item = node->data.sequence.items.start;
+	    item < node->data.sequence.items.top; item++) {
+		child = yaml_document_get_node(doc, *item);
+		if (!child) {
+			YAML_RC_SET(ret, YAML_RC_NODE_FAILED_GET_CHILD_NODE);
+			goto cleanup_strings;
+		}
+
+		if (child->type != YAML_SCALAR_NODE) {
+			YAML_RC_SET_WITH_OFFENDING_NODE(
+			    ret, YAML_RC_NODE_IS_NOT_SCALAR, child);
+			goto cleanup_strings;
+		}
+
+		ret = create_string_param(&seq->strings[item_idx], child);
+		if (!YAML_RC_CHECK_SUCCESS(ret)) {
+			goto cleanup_strings;
+		}
+
+		item_idx++;
+	}
+
+	YAML_RC_SET_SUCCESS(ret);
+	goto exit;
+
+cleanup_strings:
+	destroy_string_sequence(seq, item_idx);
+	free(seq->strings);
+exit:
+	return ret;
+}
+
 yaml_return_code_t pipeline_parse_entry(
-    void *obj, const char *key, yaml_node_t *child_node)
+    void *obj, const char *key, yaml_document_t *doc, yaml_node_t *child_node)
 {
 	int idx;
 	yaml_return_code_t ret;
@@ -335,10 +400,14 @@ yaml_return_code_t pipeline_parse_entry(
 			    ret, YAML_RC_ENTRY_ALREADY_PARSED, child_node);
 			goto exit;
 		}
-		return allocate_typed_array_for_section(child_node,
-		    (void **)&pipeline_obj->codecs.strings,
-		    &pipeline_obj->codecs.strings_count,
-		    sizeof(yaml_str_param_t));
+
+		ret = parse_strings_sequence(
+		    doc, child_node, &pipeline_obj->codecs);
+		if (!YAML_RC_CHECK_SUCCESS(ret)) {
+			YAML_RC_SET_OFFENDING_NODE(ret, child_node);
+		}
+
+		goto exit;
 	}
 	}
 
@@ -509,11 +578,12 @@ check_non_mandatory_fields:
 }
 
 yaml_return_code_t partition_parse_entry(
-    void *obj, const char *key, yaml_node_t *child_node)
+    void *obj, const char *key, yaml_document_t *doc, yaml_node_t *child_node)
 {
 	int idx;
 	yaml_return_code_t ret;
 	struct yaml_partition_obj *partition_obj = obj;
+	(void)doc;
 
 	ret =
 	    compare_key_string_value(key, &idx, partition_mandatory_fields, 2);
