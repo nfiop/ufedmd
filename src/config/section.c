@@ -212,7 +212,7 @@ static yaml_return_code_t parse_codecs_section(
 		child = yaml_document_get_node(doc, *item);
 		if (!child) {
 			YAML_RC_SET(ret, YAML_RC_NODE_FAILED_GET_CHILD_NODE);
-			goto exit;
+			goto cleanup_objs;
 		}
 
 		handle.obj = &objs[item_idx];
@@ -412,7 +412,7 @@ static yaml_return_code_t parse_pipelines_section(
 		child = yaml_document_get_node(doc, *item);
 		if (!child) {
 			YAML_RC_SET(ret, YAML_RC_NODE_FAILED_GET_CHILD_NODE);
-			goto exit;
+			goto cleanup_mappings;
 		}
 
 		ret = prepare_pipeline_object(child);
@@ -630,7 +630,7 @@ static yaml_return_code_t parse_partitions_section(
 		child = yaml_document_get_node(doc, *item);
 		if (!child) {
 			YAML_RC_SET(ret, YAML_RC_NODE_FAILED_GET_CHILD_NODE);
-			goto exit;
+			goto cleanup_mappings;
 		}
 
 		ret = prepare_partition_object(child);
