@@ -1,0 +1,6 @@
+[submodule "src/kernel"]
+	path = src/kernel
+	url = https://github.com/nfiop/ufedm.git
+[submodule "libs/libyaml"]
+	path = libs/libyaml
+	url = https://github.com/yaml/libyaml.git

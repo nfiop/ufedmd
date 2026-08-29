@@ -34,3 +34,12 @@ be invoked according to the I/O request type.
 ## So what is the development plan?
 
 See [development](DEVELOPMENT.md) document for more details.
+
+## License
+
+This project is licensed under the GNU General Public License, version 2 only (GPL-2.0-only), except where otherwise noted.
+
+The files `src/common/hashtable.c` and `src/common/hashtable.h` are derived from/copy code from the original work by Joshua J. Baker and are licensed under the MIT License. See the copyright and license notices in those files for details.
+
+The ufedm project is part of the nfiop project, and is licensed under the
+GPL-2.0-only license. 

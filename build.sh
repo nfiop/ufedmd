@@ -78,6 +78,14 @@ if [[ "${1:-}" == "clean" ]]; then
     shift
 fi
 
+# Now is a good time to download the submodules, before doing anything else
+if command -v git >/dev/null 2>&1; then
+    git submodule update --init --recursive
+else
+    echo "Git is not installed or not available in PATH."
+    exit 1
+fi
+
 echo "==> Configuring"
 
 configure_cmake_build_directory
