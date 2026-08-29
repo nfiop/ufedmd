@@ -1,0 +1,12 @@
+codecs:
+  - name: bch4
+    type: bch
+    m: 11
+    t: 4
+    polynom: 0x2222
+    chunk_size: 256
+  
+pipelines:
+  - name: main_image
+    codecs:
+      - bch4

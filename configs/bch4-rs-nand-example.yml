@@ -11,6 +11,10 @@ codecs:
     t: 4
     polynom: 0x2222
     chunk_size: 256
+
+  - name: nan
+    type: drop
+    error: 2
   
 pipelines:
   - name: main_image
@@ -21,9 +25,13 @@ pipelines:
     codecs:
       - basic_rs
 
+  - name: nan
+    codecs:
+      - nan
+
 partitions:
   - name: main_image_part1
-    pipeline: simple_ecc
+    pipeline: main_image
     eraseblocks: 0-1021
 
   - name: nvram
@@ -36,6 +44,7 @@ partitions:
     pages: 0-60
 
   - name: reserved
-    pipeline: 
+    pipeline: nan
     eraseblocks: 1023
     pages: 61-63
+  
