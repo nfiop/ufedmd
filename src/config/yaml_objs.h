@@ -33,6 +33,9 @@ struct yaml_codec_obj {
 struct yaml_pipeline_obj {
 	yaml_str_param_t name;
 
+	bool write_order;
+	bool readonly;
+
 	/* An array of codecs string for evaluating later.
 	 * The size of the array is saved in the _count variable
 	 */

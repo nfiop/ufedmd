@@ -115,6 +115,35 @@ exit:
 	return ret;
 }
 
+yaml_return_code_t yaml_set_boolean_flag(bool *flag, yaml_node_t *value)
+{
+	yaml_return_code_t ret;
+
+	if (value->type != YAML_SCALAR_NODE) {
+		YAML_RC_SET_WITH_OFFENDING_NODE(
+		    ret, YAML_RC_COMPARING_WITH_NON_SCALAR, value);
+		return ret;
+	}
+
+	ret = compare_key_scalar_one_value(value, "true");
+	if (YAML_RC_CHECK_SUCCESS(ret)) {
+		*flag = true;
+		goto success;
+	}
+	ret = compare_key_scalar_one_value(value, "false");
+	if (YAML_RC_CHECK_SUCCESS(ret)) {
+		*flag = false;
+		goto success;
+	}
+
+	YAML_RC_SET_WITH_OFFENDING_NODE(
+	    ret, YAML_RC_INVALID_BOOLEAN_FLAG, value);
+	return ret;
+success:
+	YAML_RC_SET_SUCCESS(ret);
+	return ret;
+}
+
 yaml_return_code_t yaml_sequence_get_objects_count(
     yaml_node_t *node, size_t *count)
 {
@@ -405,6 +434,8 @@ const char *return_code_value_to_string(yaml_return_code_enum_t rc)
 		return "Node is not a seqeunce";
 	case YAML_RC_NODE_IS_NOT_SCALAR:
 		return "Node is not a scalar";
+	case YAML_RC_INVALID_BOOLEAN_FLAG:
+		return "Boolean flag value is not valid";
 	case YAML_RC_SCALAR_COMPARE_NO_MATCH:
 		return "Scalar compare yields no match";
 	case YAML_RC_NODE_FAILED_GET_CHILD_NODE:

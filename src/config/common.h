@@ -18,6 +18,8 @@ yaml_return_code_t compare_key_string_value(
 yaml_return_code_t compare_key_scalar_one_value(
     yaml_node_t *node, const char *string);
 
+yaml_return_code_t yaml_set_boolean_flag(bool *flag, yaml_node_t *value);
+
 yaml_return_code_t yaml_sequence_get_objects_count(
     yaml_node_t *node, size_t *count);
 

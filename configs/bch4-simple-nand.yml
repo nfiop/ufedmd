@@ -8,5 +8,7 @@ codecs:
   
 pipelines:
   - name: main_image
+    order: read
+    readonly: false
     codecs:
       - bch4

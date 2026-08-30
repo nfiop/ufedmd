@@ -274,7 +274,7 @@ static void free_pipeline_codec_entries(
 	}
 }
 
-static const char *pipeline_fields[] = {"name", "codecs"};
+static const char *pipeline_fields[] = {"name", "order", "readonly", "codecs"};
 
 void pipeline_cleanup_entry(void *obj, const char *key)
 {
@@ -282,7 +282,7 @@ void pipeline_cleanup_entry(void *obj, const char *key)
 	yaml_return_code_t ret;
 	struct yaml_pipeline_obj *pipeline_obj = obj;
 
-	ret = compare_key_string_value(key, &idx, pipeline_fields, 2);
+	ret = compare_key_string_value(key, &idx, pipeline_fields, 4);
 	if (!YAML_RC_CHECK_SUCCESS(ret))
 		return;
 
@@ -292,8 +292,12 @@ void pipeline_cleanup_entry(void *obj, const char *key)
 		destroy_string_param(&pipeline_obj->name);
 		break;
 	}
+	case 1: /* order field */
+		break;
+	case 2: /* readonly field */
+		break;
 	/* Type field */
-	case 1: {
+	case 3: {
 		free_pipeline_codec_entries(
 		    pipeline_obj, pipeline_obj->codecs.strings_count);
 		break;
@@ -367,6 +371,8 @@ exit:
 	return ret;
 }
 
+static const char *order_options[] = {"read", "write"};
+
 yaml_return_code_t pipeline_parse_entry(
     void *obj, const char *key, yaml_document_t *doc, yaml_node_t *child_node)
 {
@@ -374,7 +380,7 @@ yaml_return_code_t pipeline_parse_entry(
 	yaml_return_code_t ret;
 	struct yaml_pipeline_obj *pipeline_obj = obj;
 
-	ret = compare_key_string_value(key, &idx, pipeline_fields, 2);
+	ret = compare_key_string_value(key, &idx, pipeline_fields, 4);
 	if (!YAML_RC_CHECK_SUCCESS(ret)) {
 		YAML_RC_SET_OFFENDING_NODE(ret, child_node);
 		return ret;
@@ -391,8 +397,38 @@ yaml_return_code_t pipeline_parse_entry(
 		}
 		return create_string_param(&pipeline_obj->name, child_node);
 	}
+	case 1: { /* order field */
+		int option_idx;
+		// FIXME: Add a sentinel in the boolean flag
+		// so it can set once.
+		ret = compare_key_scalar_value(
+		    child_node, &option_idx, order_options, 2);
+		if (!YAML_RC_CHECK_SUCCESS(ret)) {
+			YAML_RC_SET_OFFENDING_NODE(ret, child_node);
+			goto exit;
+		}
+
+		switch (idx) {
+		case 0: // "read"
+			YAML_RC_SET_SUCCESS(ret);
+			pipeline_obj->write_order = false;
+			break;
+		case 1: // "write"
+			pipeline_obj->write_order = true;
+			YAML_RC_SET_SUCCESS(ret);
+			break;
+		default:
+			YAML_RC_SET(ret, YAML_RC_INVALID_OBJECT_NODE);
+		}
+		goto exit;
+	}
+	case 2: /* readonly field */
+		// FIXME: Add a sentinel in the boolean flag
+		// so it can set once.
+		return yaml_set_boolean_flag(
+		    &pipeline_obj->readonly, child_node);
 	/* Codecs field */
-	case 1: {
+	case 3: {
 		/* Already allocated, reject */
 		if (pipeline_obj->codecs.strings ||
 		    pipeline_obj->codecs.strings_count) {
@@ -456,7 +492,7 @@ static yaml_return_code_t parse_pipelines_section(
 	yaml_node_t *child;
 	yaml_node_item_t *item;
 	struct mapping_handle handle;
-	struct yaml_pipeline_obj *objs;
+	struct yaml_pipeline_obj *objs, *cur;
 
 	if (node->type != YAML_SEQUENCE_NODE) {
 		YAML_RC_SET_WITH_OFFENDING_NODE(
@@ -487,6 +523,12 @@ static yaml_return_code_t parse_pipelines_section(
 		ret = prepare_pipeline_object(child);
 		if (!YAML_RC_CHECK_SUCCESS(ret))
 			goto cleanup_mappings;
+
+		cur = &objs[item_idx];
+
+		/* Some default values... */
+		cur->write_order = false;
+		cur->readonly = false;
 
 		handle.obj = &objs[item_idx];
 		ret = parse_mapping_object(doc, child, &handle);
