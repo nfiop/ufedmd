@@ -4,35 +4,7 @@ include(env.cmake)
 
 project(ufedmd C)
 
-include(ExternalProject)
-
-set(LIBYAML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/libyaml")
-set(LIBYAML_BINARY_DIR "${CMAKE_BINARY_DIR}/libyaml")
-set(LIBYAML_INSTALL_DIR "${CMAKE_BINARY_DIR}/libyaml-install")
-
-ExternalProject_Add(libyaml
-    SOURCE_DIR "${LIBYAML_SOURCE_DIR}"
-    BINARY_DIR "${LIBYAML_BINARY_DIR}"
-
-    CONFIGURE_COMMAND
-        ${CMAKE_COMMAND} -E chdir "${LIBYAML_SOURCE_DIR}"
-        ./bootstrap
-    	COMMAND
-	${CMAKE_COMMAND} -E chdir "${LIBYAML_SOURCE_DIR}"
-	./configure --prefix=${LIBYAML_INSTALL_DIR}
-
-    BUILD_COMMAND
-        ${CMAKE_COMMAND} -E chdir "${LIBYAML_SOURCE_DIR}"
-    	${CMAKE_MAKE_PROGRAM}
-
-    INSTALL_COMMAND
-        ${CMAKE_COMMAND} -E chdir "${LIBYAML_SOURCE_DIR}"
-        ${CMAKE_MAKE_PROGRAM} install
-
-    BUILD_IN_SOURCE FALSE
-)
-
-set(LIBYAML_LIBRARY "${LIBYAML_INSTALL_DIR}/lib/libyaml.a")
+include (libs/libyaml.cmake)
 
 message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "System: ${CMAKE_SYSTEM_NAME}")

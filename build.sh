@@ -2,20 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="$ROOT_DIR/build"
 
 BUILDROOT_DIR="${BUILDROOT_DIR:-}"
 
-configure_cmake_build_directory() {
-   cmake -B "$BUILD_DIR" \
-    -DBUILDROOT_DIR="${BUILDROOT_DIR:-}" \
-    "$ROOT_DIR"
-}
-
 clean() {
-    echo "==> Cleaning build directory: $BUILD_DIR"
-    rm -rf "$BUILD_DIR"
-
+    rm -rf "$ROOT_DIR/build/"
+ 
     echo "==> Clean complete"
 }
 
@@ -78,6 +70,8 @@ if [[ "${1:-}" == "clean" ]]; then
     shift
 fi
 
+echo "==> Configuring"
+
 # Now is a good time to download the submodules, before doing anything else
 if command -v git >/dev/null 2>&1; then
     git submodule update --init --recursive
@@ -86,9 +80,27 @@ else
     exit 1
 fi
 
-echo "==> Configuring"
+if [[ -z "$BUILDROOT_DIR" ]]; then
+    BUILD_DIR="$ROOT_DIR/build/$(uname -m)-linux-$(uname -r)"
+else
+    LINUX_VER=$(ls "$BUILDROOT_DIR/output/build/" | grep '^linux')
+    if [[ $? -ne 0 || -z "$LINUX_VER" ]]; then
+        echo "Could not find Linux version for buildroot environment"
+        exit 1
+    fi
 
-configure_cmake_build_directory
+    BUILDROOT_ARCH=$(grep '^BR2_ARCH=' "$BUILDROOT_DIR/.config" | sed 's/BR2_ARCH="\(.*\)"/\1/')
+    if [[ $? -ne 0 || -z "$BUILDROOT_ARCH" ]]; then
+        echo "Could not determine Buildroot architecture"
+        exit 1
+    fi
+    BUILD_DIR="$ROOT_DIR/build/$BUILDROOT_ARCH-$LINUX_VER"
+fi
+
+# Configure CMake build directory
+cmake -B "$BUILD_DIR" \
+    -DBUILDROOT_DIR="${BUILDROOT_DIR:-}" \
+    "$ROOT_DIR"
 
 echo "==> Building"
 cmake --build "$BUILD_DIR" -j"$(nproc)"
