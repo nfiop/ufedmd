@@ -8,7 +8,6 @@
 #include "config/mapping.h"
 #include "return_codes.h"
 #include "types.h"
-#include "utils.h"
 #include "yaml_objs.h"
 #include <yaml.h>
 
