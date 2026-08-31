@@ -7,7 +7,7 @@ set(LIBYAML_SOURCE_DIR
 )
 
 set(LIBYAML_ROOT_DIR
-    "${CMAKE_BINARY_DIR}/libyaml-${CMAKE_SYSTEM_PROCESSOR}"
+    "${CMAKE_BINARY_DIR}/libyaml"
 )
 
 set(LIBYAML_BUILD_SOURCE_DIR
@@ -37,21 +37,7 @@ if(CMAKE_CROSSCOMPILING)
     message(STATUS "libyaml host: ${LIBYAML_HOST}")
 endif()
 
-
 ExternalProject_Add(libyaml
-
-    # We don't download anything. The source tree is copied below.
-    DOWNLOAD_COMMAND
-        ${CMAKE_COMMAND} -E rm -rf
-        "${LIBYAML_BUILD_SOURCE_DIR}"
-        COMMAND
-        ${CMAKE_COMMAND} -E make_directory
-        "${LIBYAML_BUILD_SOURCE_DIR}"
-        COMMAND
-        ${CMAKE_COMMAND} -E copy_directory
-        "${LIBYAML_SOURCE_DIR}"
-        "${LIBYAML_BUILD_SOURCE_DIR}"
-
     SOURCE_DIR
         "${LIBYAML_BUILD_SOURCE_DIR}"
 
@@ -83,6 +69,9 @@ ExternalProject_Add(libyaml
         ${CMAKE_MAKE_PROGRAM} install
 
     BUILD_IN_SOURCE
+        TRUE
+
+    BUILD_ALWAYS
         TRUE
 )
 

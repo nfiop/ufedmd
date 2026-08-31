@@ -97,6 +97,10 @@ else
     BUILD_DIR="$ROOT_DIR/build/$BUILDROOT_ARCH-$LINUX_VER"
 fi
 
+# Always copy latest files from libyaml to the build directory.
+mkdir -p $BUILD_DIR/libyaml/src
+rsync -r libs/libyaml/ $BUILD_DIR/libyaml/src/
+
 # Configure CMake build directory
 cmake -B "$BUILD_DIR" \
     -DBUILDROOT_DIR="${BUILDROOT_DIR:-}" \
