@@ -1,0 +1,242 @@
+{
+	"codecs": [
+		{
+			"name": "basic_rs",
+			"type": "rs",
+			"params": [
+				{
+					"key": "n",
+					"value": 255
+				},
+				{
+					"key": "k",
+					"value": 233
+				},
+				{
+					"key": "polynom",
+					"value": 285
+				},
+				{
+					"key": "chunk_size",
+					"value": 256
+				}
+			]
+		},
+		{
+			"name": "bch4",
+			"type": "bch",
+			"params": [
+				{
+					"key": "m",
+					"value": 11
+				},
+				{
+					"key": "t",
+					"value": 4
+				},
+				{
+					"key": "polynom",
+					"value": 8738
+				},
+				{
+					"key": "chunk_size",
+					"value": 256
+				}
+			]
+		}
+	],
+
+	"pipelines": [
+		{
+			"name": "main_image",
+			"page_layout": [
+				{
+					"part_name": "data",
+					"span_name": "data",
+					"offset": 0,
+					"length": 2048
+				},
+				{
+					"part_name": "bbm",
+					"span_name": "bbm",
+					"offset": 2048,
+					"length": 2
+				},
+				{
+					"part_name": "ecc",
+					"span_name": "oob",
+					"offset": 2050,
+					"length": 48
+				},
+				{
+					"part_name": "user_oob1",
+					"span_name": "user_oob",
+					"offset": 2098,
+					"length": 16
+				}
+			],
+			"request_mappings": {
+				"read": {
+					"data_span": "data",
+					"oob_span": "oob"
+				},
+				"write": {
+					"data_span": "data",
+					"oob_span": "oob"
+				}
+			},
+			"codecs": {
+				"read": [
+					{
+						"name": "bch4",
+						"data": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"oob": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				],
+				"write": [
+					{
+						"name": "bch4",
+						"src": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"dest": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "nvram",
+			"page_layout": [
+				{
+					"part_name": "data",
+					"span_name": "data",
+					"offset": 0,
+					"length": 2048
+				},
+				{
+					"part_name": "bbm",
+					"span_name": "bbm",
+					"offset": 2048,
+					"length": 2
+				},
+				{
+					"part_name": "ecc",
+					"span_name": "oob",
+					"offset": 2050,
+					"length": 48
+				},
+				{
+					"part_name": "unknown",
+					"span_name": "reserved",
+					"offset": 2098,
+					"length": 4
+				},
+				{
+					"part_name": "checksum",
+					"span_name": "oob",
+					"offset": 2102,
+					"length": 12
+				}
+			],
+			"request_mappings": {
+				"read": {
+					"data_span": "data",
+					"oob_span": "oob"
+				},
+				"write": {
+					"data_span": "data",
+					"oob_span": "oob"
+				}
+			},
+			"codecs": {
+				"read": [
+					{
+						"name": "basic_rs",
+						"data": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"oob": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				],
+				"write": [
+					{
+						"name": "basic_rs",
+						"src": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"dest": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				]
+			}
+		}
+	],
+
+	"partitions": [
+		{
+			"name": "main_image_part1",
+			"pipeline": "main_image",
+			"eraseblocks": {
+				"offset": 0,
+				"length": 1021
+			}
+		},
+		{
+			"name": "nvram",
+			"pipeline": "nvram",
+			"eraseblocks": {
+				"offset": 1022,
+				"length": 1
+			}
+		},
+		{
+			"name": "main_image_part2",
+			"pipeline": "main_image",
+			"eraseblocks": {
+				"offset": 1023,
+				"length": 1
+			},
+			"pages": {
+				"offset": 0,
+				"length": 60
+			}
+		},
+		{
+			"name": "reserved",
+			"pipeline": "nan",
+			"eraseblocks": {
+				"offset": 1023,
+				"length": 1
+			},
+			"pages": {
+				"offset": 61,
+				"length": 3
+			}
+		}
+	]
+}

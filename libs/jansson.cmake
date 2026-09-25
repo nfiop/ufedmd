@@ -2,49 +2,49 @@ cmake_minimum_required(VERSION 3.20)
 
 include(ExternalProject)
 
-set(LIBYAML_SOURCE_DIR
-    "${CMAKE_SOURCE_DIR}/libs/libyaml"
+set(JANSSON_SOURCE_DIR
+    "${CMAKE_SOURCE_DIR}/libs/jansson"
 )
 
-set(LIBYAML_ROOT_DIR
-    "${CMAKE_BINARY_DIR}/libyaml"
+set(JANSSON_ROOT_DIR
+    "${CMAKE_BINARY_DIR}/jansson"
 )
 
-set(LIBYAML_BUILD_SOURCE_DIR
-    "${LIBYAML_ROOT_DIR}/src"
+set(JANSSON_BUILD_SOURCE_DIR
+    "${JANSSON_ROOT_DIR}/src"
 )
 
-set(LIBYAML_INSTALL_DIR
-    "${LIBYAML_ROOT_DIR}/install"
+set(JANSSON_INSTALL_DIR
+    "${JANSSON_ROOT_DIR}/install"
 )
 
 # Get the GNU target triplet from the compiler.
 if(CMAKE_CROSSCOMPILING)
     execute_process(
         COMMAND "${CMAKE_C_COMPILER}" -dumpmachine
-        OUTPUT_VARIABLE LIBYAML_HOST
+        OUTPUT_VARIABLE JANSSON_HOST
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE LIBYAML_HOST_RESULT
+        RESULT_VARIABLE JANSSON_HOST_RESULT
     )
 
-    if(NOT LIBYAML_HOST_RESULT EQUAL 0 OR NOT LIBYAML_HOST)
+    if(NOT JANSSON_HOST_RESULT EQUAL 0 OR NOT JANSSON_HOST)
         message(FATAL_ERROR
             "Could not determine target triplet from "
             "${CMAKE_C_COMPILER}"
         )
     endif()
 
-    message(STATUS "libyaml host: ${LIBYAML_HOST}")
+    message(STATUS "jansson host: ${JANSSON_HOST}")
 endif()
 
-ExternalProject_Add(libyaml
+ExternalProject_Add(jansson
     SOURCE_DIR
-        "${LIBYAML_BUILD_SOURCE_DIR}"
+        "${JANSSON_BUILD_SOURCE_DIR}"
 
     CONFIGURE_COMMAND
         ${CMAKE_COMMAND} -E chdir
-        "${LIBYAML_BUILD_SOURCE_DIR}"
-        ./bootstrap
+        "${JANSSON_BUILD_SOURCE_DIR}"
+        autoreconf -i
 
         COMMAND
         ${CMAKE_COMMAND} -E env
@@ -53,19 +53,19 @@ ExternalProject_Add(libyaml
             RANLIB=${CMAKE_RANLIB}
             STRIP=${CMAKE_STRIP}
         ${CMAKE_COMMAND} -E chdir
-        "${LIBYAML_BUILD_SOURCE_DIR}"
+        "${JANSSON_BUILD_SOURCE_DIR}"
         ./configure
-            --prefix=${LIBYAML_INSTALL_DIR}
-            $<$<BOOL:${CMAKE_CROSSCOMPILING}>:--host=${LIBYAML_HOST}>
+            --prefix=${JANSSON_INSTALL_DIR}
+            $<$<BOOL:${CMAKE_CROSSCOMPILING}>:--host=${JANSSON_HOST}>
 
     BUILD_COMMAND
         ${CMAKE_COMMAND} -E chdir
-        "${LIBYAML_BUILD_SOURCE_DIR}"
+        "${JANSSON_BUILD_SOURCE_DIR}"
         ${CMAKE_MAKE_PROGRAM}
 
     INSTALL_COMMAND
         ${CMAKE_COMMAND} -E chdir
-        "${LIBYAML_BUILD_SOURCE_DIR}"
+        "${JANSSON_BUILD_SOURCE_DIR}"
         ${CMAKE_MAKE_PROGRAM} install
 
     BUILD_IN_SOURCE
@@ -75,4 +75,4 @@ ExternalProject_Add(libyaml
         TRUE
 )
 
-set(LIBYAML_LIBRARY "${LIBYAML_INSTALL_DIR}/lib/libyaml.a")
+set(JANSSON_LIBRARY "${JANSSON_INSTALL_DIR}/lib/libjansson.a")

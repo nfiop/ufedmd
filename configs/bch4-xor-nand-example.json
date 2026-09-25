@@ -1,0 +1,262 @@
+{
+	"codecs": [
+		{
+			"name": "xor",
+			"type": "xor",
+			"params": [
+				{
+					"key": "mask",
+					"value": "00b425ab9768c574f098"
+				},
+				{
+					"key": "allow_partial_chunk",
+					"value": false
+				}
+			]
+		},
+		{
+			"name": "bch4",
+			"type": "bch",
+			"params": [
+				{
+					"key": "m",
+					"value": 11
+				},
+				{
+					"key": "t",
+					"value": 4
+				},
+				{
+					"key": "polynom",
+					"value": 8738
+				},
+				{
+					"key": "chunk_size",
+					"value": 256
+				}
+			]
+		},
+		{
+			"name": "bbm-fill",
+			"type": "memset",
+			"params": [
+				{
+					"key": "byte_pattern",
+					"value": 255
+				}
+			]
+		}
+	],
+
+	"pipelines": [
+		{
+			"name": "main_image_bbm_pages",
+			"page_layout": [
+				{
+					"part_name": "data",
+					"span_name": "data",
+					"offset": 0,
+					"length": 2048
+				},
+				{
+					"part_name": "bbm",
+					"span_name": "bbm",
+					"offset": 2048,
+					"length": 2
+				},
+				{
+					"part_name": "ecc",
+					"span_name": "oob",
+					"offset": 2050,
+					"length": 48
+				},
+				{
+					"part_name": "user_oob1",
+					"span_name": "user_oob",
+					"offset": 2098,
+					"length": 16
+				}
+			],
+			"request_mappings": {
+				"read": {
+					"data_span": "data",
+					"oob_span": "oob"
+				},
+				"write": {
+					"data_span": "data",
+					"oob_span": "oob"
+				}
+			},
+			"codecs": {
+				"read": [
+					{
+						"name": "xor",
+						"data": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					},
+					{
+						"name": "bch4",
+						"data": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"oob": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				],
+				"write": [
+					{
+						"name": "bch4",
+						"src": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"dest": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					},
+					{
+						"name": "xor",
+						"dest": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					},
+					{
+						"name": "bbm-fill",
+						"dest": {
+							"span_name": "bbm",
+							"offset": 0,
+							"length": 2
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "main_image_non_bbm_pages",
+			"page_layout": [
+				{
+					"part_name": "data",
+					"span_name": "data",
+					"offset": 0,
+					"length": 2048
+				},
+				{
+					"part_name": "ecc",
+					"span_name": "oob",
+					"offset": 2048,
+					"length": 50
+				},
+				{
+					"part_name": "unknown",
+					"span_name": "reserved",
+					"offset": 2098,
+					"length": 4
+				},
+				{
+					"part_name": "checksum",
+					"span_name": "oob",
+					"offset": 2102,
+					"length": 12
+				}
+			],
+			"request_mappings": {
+				"read": {
+					"data_span": "data",
+					"oob_span": "oob"
+				},
+				"write": {
+					"data_span": "data",
+					"oob_span": "oob"
+				}
+			},
+			"codecs": {
+				"read": [
+					{
+						"name": "xor",
+						"data": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					},
+					{
+						"name": "bch4",
+						"data": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"oob": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				],
+				"write": [
+					{
+						"name": "bch4",
+						"src": {
+							"span_name": "data",
+							"offset": 0,
+							"length": 2048
+						},
+						"dest": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					},
+					{
+						"name": "xor",
+						"dest": {
+							"span_name": "oob",
+							"offset": 0,
+							"length": 24
+						}
+					}
+				]
+			}
+		}
+	],
+
+	"partitions": [
+		{
+			"name": "main_image_pages_with_bbm",
+			"pipeline": "main_image_bbm_pages",
+			"eraseblocks": {
+				"offset": 0,
+				"length": 1024
+			},
+			"pages": {
+				"offset": 0,
+				"length": 1
+			}
+		},
+		{
+			"name": "main_image_pages_without_bbm",
+			"pipeline": "main_image_non_bbm_pages",
+			"eraseblocks": {
+				"offset": 0,
+				"length": 1024
+			},
+			"pages": {
+				"offset": 1,
+				"length": 63
+			}
+		}
+	]
+}

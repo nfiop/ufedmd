@@ -3,51 +3,48 @@
  * Copyright (c) 2026 Liav A
  */
 
-#ifndef __YAML__COMMON__H_
-#define __YAML__COMMON__H_
+#ifndef __CFG__COMMON__H_
+#define __CFG__COMMON__H_
 
 #include "config/return_codes.h"
-#include "config/yaml_objs.h"
+#include "config/types.h"
 
-#include <yaml.h>
+#include <jansson.h>
 
-yaml_return_code_t compare_key_scalar_value(
-    yaml_node_t *node, int *index, const char **strings, size_t strings_count);
-yaml_return_code_t compare_key_string_value(
-    const char *string, int *index, const char **strings, size_t strings_count);
-yaml_return_code_t compare_key_scalar_one_value(
-    yaml_node_t *node, const char *string);
+#define RELEASE_JSON_OBJECT(__json_obj)                                        \
+	do {                                                                   \
+		if (__json_obj)                                                \
+			json_decref(__json_obj);                               \
+	} while (0)
 
-yaml_return_code_t yaml_set_boolean_flag(bool *flag, yaml_node_t *value);
+json_t *get_json_string_by_key(json_t *obj, const char *key);
 
-yaml_return_code_t yaml_sequence_get_objects_count(
-    yaml_node_t *node, size_t *count);
+void print_cfg_scalar_value(cfg_value_param_t *param);
+void destroy_scalar_param(cfg_value_param_t *param);
+cfg_return_code_t create_scalar_param(cfg_value_param_t *param, json_t *value);
 
-void destroy_string_param(yaml_str_param_t *param);
-void destroy_optional_string_param(yaml_str_param_t *param);
+void fill_range_with_max_length(struct range *range);
+
+cfg_return_code_t parse_bare_range_object(struct range *obj, json_t *range);
+
+void destroy_dict(struct cfg_dict *dict);
+
+void destroy_string_param(cfg_str_param_t *param);
+void destroy_optional_string_param(cfg_str_param_t *param);
 void destroy_key_value_pair(struct key_value_pair *pair);
-yaml_return_code_t create_string_param(
-    yaml_str_param_t *param, yaml_node_t *value);
+cfg_return_code_t adopt_string_param(cfg_str_param_t *param, const char *str);
+cfg_return_code_t create_string_param(cfg_str_param_t *param, json_t *value);
 
-yaml_return_code_t append_pair_to_dict(
-    struct yaml_dict *dict, const char *key, yaml_node_t *value);
-yaml_return_code_t create_key_value_pair(
-    struct key_value_pair *pair, const char *key, yaml_node_t *value);
-yaml_return_code_t find_key_value_pair(
-    struct yaml_dict *dict, struct key_value_pair **pairp, const char *key);
-
-yaml_return_code_t allocate_typed_array_for_section(
-    yaml_node_t *node, void **arrp, size_t *objs_countp, size_t struct_size);
-
-yaml_return_code_t allocate_pairs_array(
+cfg_return_code_t allocate_pairs_array(
     struct key_value_pair **arrp, size_t count);
-yaml_return_code_t yaml_mapping_get_objects_count(
-    yaml_node_t *node, size_t *count);
 
-yaml_return_code_t build_str_param_from_node_val(yaml_document_t *doc,
-    yaml_str_param_t *str, yaml_node_t *parent_node, yaml_node_pair_t *pair,
-    const char *key_name);
+cfg_return_code_t append_pair_to_dict(
+    struct cfg_dict *dict, const char *key, json_t *value);
+cfg_return_code_t create_key_value_pair(
+    struct key_value_pair *pair, const char *key, json_t *value);
+cfg_return_code_t find_key_value_pair(
+    struct cfg_dict *dict, struct key_value_pair **pairp, const char *key);
 
-const char *return_code_value_to_string(yaml_return_code_enum_t rc);
+const char *return_code_value_to_string(cfg_return_code_enum_t rc);
 
 #endif

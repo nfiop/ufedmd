@@ -3,26 +3,45 @@
  * Copyright (c) 2026 Liav A
  */
 
-#ifndef __YAML__TYPES_H_
-#define __YAML__TYPES_H_
+#ifndef __CFG__TYPES_H_
+#define __CFG__TYPES_H_
 
+#include <common/types.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct yaml_string_param {
+typedef struct cfg_string_param {
 	char *str;
 	size_t len;
-} yaml_str_param_t;
+} cfg_str_param_t;
 
-struct key_value_pair {
-	yaml_str_param_t key;
-	yaml_str_param_t value;
+enum cfg_value_param_type {
+	CFG_VALUE_PARAM_TYPE_STRING,
+	CFG_VALUE_PARAM_TYPE_INTEGER,
+	CFG_VALUE_PARAM_TYPE_BOOLEAN,
+	CFG_VALUE_PARAM_TYPE_DOUBLE,
 };
 
-struct yaml_string_sequence {
-	yaml_str_param_t *strings;
-	size_t strings_count;
+typedef struct cfg_value_param {
+	enum cfg_value_param_type type;
+	union {
+		bool flag;
+		cfg_str_param_t string;
+		unsigned int integer;
+		double real;
+	} value;
+} cfg_value_param_t;
+
+struct key_value_pair {
+	cfg_str_param_t key;
+	cfg_value_param_t value;
+};
+
+struct cfg_dict {
+	struct key_value_pair *key_val_pairs;
+	size_t key_value_pairs_count;
+	size_t __used;
 };
 
 #endif

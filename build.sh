@@ -97,9 +97,9 @@ else
     BUILD_DIR="$ROOT_DIR/build/$BUILDROOT_ARCH-$LINUX_VER"
 fi
 
-# Always copy latest files from libyaml to the build directory.
-mkdir -p $BUILD_DIR/libyaml/src
-rsync -r libs/libyaml/ $BUILD_DIR/libyaml/src/
+# Always copy latest files from jansson to the build directory.
+mkdir -p $BUILD_DIR/jansson/src
+rsync -r libs/jansson/ $BUILD_DIR/jansson/src/
 
 # Configure CMake build directory
 cmake -B "$BUILD_DIR" \
