@@ -176,6 +176,7 @@ if $NATIVE_MODE; then
     )
 else
     CMAKE_ARGS+=(
+        "-DBUILDROOT_DIR=${BUILDROOT_DIR}"
         "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}"
     )
 fi

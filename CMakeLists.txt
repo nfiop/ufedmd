@@ -42,3 +42,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(ufedmd PRIVATE -O0 -g)
 endif()
 
+# Compile the kernel module as well, with the configured toolchain, etc
+add_subdirectory(src/kernel)
+
