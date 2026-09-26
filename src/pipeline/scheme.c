@@ -963,6 +963,7 @@ static ufedmd_rc_t add_pipeline_layout_parts(pipeline_t *pipeline,
 	spans_count = 0;
 	for (part_idx = 0; part_idx < cfg_page_layout->parts_count;
 	    part_idx++) {
+		cfg_page_layout_part = &cfg_page_layout->parts[part_idx];
 		if (!verify_page_layout_part_not_out_of_range(mtd_info,
 			cfg_page_layout_part->_range.start,
 			cfg_page_layout_part->_range.length)) {
@@ -977,7 +978,6 @@ static ufedmd_rc_t add_pipeline_layout_parts(pipeline_t *pipeline,
 			goto free_parts;
 		}
 
-		cfg_page_layout_part = &cfg_page_layout->parts[part_idx];
 		part->name =
 		    strdup((const char *)cfg_page_layout_part->part_name.str);
 		if (!part->name) {
