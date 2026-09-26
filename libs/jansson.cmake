@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 include(ExternalProject)
 
 set(JANSSON_SOURCE_DIR
-    "${CMAKE_SOURCE_DIR}/libs/jansson"
+    "${CMAKE_CURRENT_SOURCE_DIR}/libs/jansson"
 )
 
 set(JANSSON_ROOT_DIR

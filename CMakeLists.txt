@@ -27,9 +27,9 @@ set(KERNEL_USER_SOURCES src/kernel/user/common/proxy_dev.c)
 
 add_executable(ufedmd ${SOURCES} ${KERNEL_USER_SOURCES})
 
-target_include_directories(ufedmd PRIVATE ${CMAKE_SOURCE_DIR}/libs/jansson/src 
-        ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/kernel/include
-        ${CMAKE_SOURCE_DIR}/src/kernel/user/common
+target_include_directories(ufedmd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/jansson/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/kernel/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/kernel/user/common
         ${JANSSON_INSTALL_DIR}/include)
 
 target_link_libraries(ufedmd PRIVATE ${JANSSON_LIBRARY})
