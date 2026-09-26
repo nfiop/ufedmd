@@ -126,7 +126,11 @@ static inline bool addition_u64_would_overflow(uint64_t a, uint64_t b)
 	return b > UINT64_MAX - a;
 }
 
-static_assert(sizeof(size_t) == 4 || sizeof(size_t) == 8);
+/* TODO: Convert this into static_assert once we don't need to worry
+ * about old compilers. For example, ARM buildroot GCC 14.3.0 complains
+ * about it.
+ */
+_Static_assert(sizeof(size_t) == 4 || sizeof(size_t) == 8);
 
 static inline bool multiplication_size_t_would_overflow(size_t a, size_t b)
 {

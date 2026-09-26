@@ -6,6 +6,9 @@
 #ifndef __COMMON_PROGRAM__H_
 #define __COMMON_PROGRAM__H_
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 struct program_params {
 	int verbose;
 	bool exit_on_error;
