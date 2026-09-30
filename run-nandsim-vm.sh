@@ -163,6 +163,8 @@ try_setup_network() {
     echo "Network should be up now..."
 }
 
+/bin/busybox --install -s /bin || echo "Failed to install busybox shortcuts"
+
 mount -t devtmpfs devtmpfs /dev
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
