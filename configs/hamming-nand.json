@@ -52,7 +52,7 @@
 					"part_name": "user_oob1",
 					"span_name": "user_oob",
 					"offset": 2098,
-					"length": 16
+					"length": 14
 				}
 			],
 			"request_mappings": {
@@ -131,7 +131,7 @@
 					"part_name": "checksum",
 					"span_name": "oob",
 					"offset": 2102,
-					"length": 12
+					"length": 10
 				}
 			],
 			"request_mappings": {
