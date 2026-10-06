@@ -192,7 +192,6 @@ static int create_scheme(struct proxy_device_state *state, char *config_path)
 	    &s_scheme, &state->mtd_info, &s_cfg_scheme);
 
 	fclose(fp);
-	UFEDMD_RC_SET_SUCCESS(ret);
 
 exit:
 	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {

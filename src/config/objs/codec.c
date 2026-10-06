@@ -8,6 +8,8 @@
 #include "config/return_codes.h"
 #include "config/scheme.h"
 
+#include <string.h>
+
 #include <jansson.h>
 
 static void __cfg_codecs_destroy(struct cfg_codec_obj *codecs, size_t max_idx)
@@ -26,6 +28,89 @@ void cfg_codecs_destroy(struct cfg_scheme *scheme)
 {
 	__cfg_codecs_destroy(scheme->codecs.objs, scheme->codecs.objs_count);
 	free(scheme->codecs.objs);
+}
+
+static int key_value_pair_compare(const void *a, const void *b, void *udata)
+{
+	UNUSED(udata);
+	const struct key_value_pair *ua = a;
+	const struct key_value_pair *ub = b;
+	return strcmp(ua->key.str, ub->key.str);
+}
+
+static uint64_t key_value_pair_hash(
+    const void *item, uint64_t seed0, uint64_t seed1)
+{
+	const struct key_value_pair *pair = item;
+	return hashmap_sip(pair->key.str, strlen(pair->key.str), seed0, seed1);
+}
+
+static void key_value_pair_destroy(void *item)
+{
+	struct key_value_pair *pair = item;
+
+	destroy_string_param(&pair->key);
+	destroy_scalar_param(&pair->value);
+}
+
+static cfg_return_code_t create_key_value_pair(
+    struct key_value_pair *pair, const char *key, json_t *value)
+{
+	cfg_return_code_t ret;
+
+	ret = adopt_string_param(&pair->key, key);
+	if (!CFG_RC_CHECK_SUCCESS(ret))
+		return ret;
+
+	ret = create_scalar_param(&pair->value, value);
+	if (CFG_RC_CHECK_SUCCESS(ret))
+		goto exit;
+
+	destroy_string_param(&pair->key);
+exit:
+	return ret;
+}
+
+static cfg_return_code_t append_pair_to_dict(
+    struct cfg_dict *dict, const char *key, json_t *value)
+{
+	cfg_return_code_t ret;
+	struct key_value_pair pair;
+	void *hashmap_ret;
+
+	if (!json_is_string(value) && !json_is_integer(value) &&
+	    !json_is_real(value) && !json_is_true(value) &&
+	    !json_is_false(value)) {
+		CFG_RC_SET_WITH_OFFENDING_NODE(
+		    ret, CFG_RC_NODE_IS_NOT_SCALAR, value);
+		goto exit;
+	}
+
+	ret = create_key_value_pair(&pair, key, value);
+	if (!CFG_RC_CHECK_SUCCESS(ret)) {
+		CFG_RC_SET_OFFENDING_NODE(ret, value);
+		goto exit;
+	}
+
+	hashmap_ret = (void *)hashmap_set(dict->values, &pair);
+	if (!hashmap_ret && hashmap_oom(dict->values)) {
+		CFG_RC_SET(ret, CFG_RC_MEMORY_ALLOCATION_FAILED);
+		CFG_RC_SET_OFFENDING_NODE(ret, value);
+		goto free_pair;
+	} else if (hashmap_ret) {
+		CFG_RC_SET(ret, CFG_RC_ENTRY_ALREADY_PARSED);
+		CFG_RC_SET_OFFENDING_NODE(ret, value);
+		goto free_pair;
+	}
+
+	CFG_RC_SET_SUCCESS(ret);
+	goto exit;
+
+free_pair:
+	destroy_string_param(&pair.key);
+	destroy_scalar_param(&pair.value);
+exit:
+	return ret;
 }
 
 static cfg_return_code_t parse_special_params(
@@ -48,14 +133,18 @@ static cfg_return_code_t parse_special_params(
 		goto exit;
 	}
 
-	ret = allocate_pairs_array(&special_params->key_val_pairs, count);
-	if (!CFG_RC_CHECK_SUCCESS(ret)) {
+	special_params->values = hashmap_new(sizeof(struct key_value_pair),
+	    count, 0, 0, key_value_pair_hash, key_value_pair_compare,
+	    key_value_pair_destroy, NULL);
+	if (!special_params->values) {
 		CFG_RC_SET(ret, CFG_RC_MEMORY_ALLOCATION_FAILED);
 		goto exit;
 	}
 
-	special_params->key_value_pairs_count = count;
-
+	/* We can fail here because of two cases -
+	 * 1. Out of memory
+	 * 2. Duplicate key
+	 */
 	json_array_foreach(params, idx, obj)
 	{
 		if (!json_is_object(obj)) {
@@ -75,18 +164,12 @@ static cfg_return_code_t parse_special_params(
 
 		ret = append_pair_to_dict(
 		    special_params, json_string_value(key), value);
-		if (!CFG_RC_CHECK_SUCCESS(ret)) {
-			goto free_pairs;
-		}
 	}
 
 	CFG_RC_SET_SUCCESS(ret);
 	goto exit;
 
 free_pairs:
-	/* If we set count to idx, the destroy function will do the rest for us
-	 */
-	special_params->key_value_pairs_count = idx;
 	destroy_dict(special_params);
 exit:
 	return ret;

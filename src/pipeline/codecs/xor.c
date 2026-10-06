@@ -159,10 +159,20 @@ exit:
 	return ret;
 }
 
+static void revert_mask_entry(pipeline_codec_t *codec)
+{
+	struct xor_codec_priv *priv = codec->priv;
+
+	free(priv->byte_mask_buf);
+	priv->byte_mask_buf_size = 0;
+}
+
 static struct codec_entry_parser parsers[] = {
     {.key = "byte_pattern",
-	.type = CODEC_ENTRY_PARSER_VALUE_TYPE_STRING,
-	.handle = handle_mask_entry},
+	.required = true,
+	.type = CFG_VALUE_PARAM_TYPE_STRING,
+	.handle = handle_mask_entry,
+	.revert = revert_mask_entry},
 };
 
 ufedmd_rc_t init_xor_codec(pipeline_codec_t *base,
@@ -176,7 +186,7 @@ ufedmd_rc_t init_xor_codec(pipeline_codec_t *base,
 
 	ret = create_standard_codec(base, xor_deinit, config, parsers,
 	    ARRAY_SIZE(parsers), &xor_write_ops, &xor_read_ops);
-	if (UFEDMD_RC_CHECK_SUCCESS(ret)) {
+	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
 		goto exit;
 	}
 

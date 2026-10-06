@@ -42,7 +42,7 @@ struct cfg_read_codec_specifier_obj {
 	struct cfg_span_specifier data;
 
 	/* Only the XOR codec supports write and read capabilities
-	 * but it doesn't need an OOB span at all (the fill-bytes codec
+	 * but it doesn't need an OOB span at all (the memset codec
 	 * for example, doesn't support a source span, and probably will never
 	 * be used by in a read context anyway).
 	 * The flag of has_valid_oob_specifier determines whether the specifier

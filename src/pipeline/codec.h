@@ -6,6 +6,7 @@
 #ifndef __PIPELINE_CODEC__H_
 #define __PIPELINE_CODEC__H_
 
+#include "config/cfg_types.h"
 #include "config/types.h"
 #include "context.h"
 #include "pipeline/codecs/return_codes.h"
@@ -95,17 +96,14 @@ typedef struct pipeline_codec {
 	void *priv;
 } pipeline_codec_t;
 
-enum codec_entry_parser_value_type {
-	CODEC_ENTRY_PARSER_VALUE_TYPE_INT,
-	CODEC_ENTRY_PARSER_VALUE_TYPE_UINT,
-	CODEC_ENTRY_PARSER_VALUE_TYPE_STRING,
-	CODEC_ENTRY_PARSER_VALUE_TYPE_BOOL,
-};
+void default_revert_entry(pipeline_codec_t *codec);
 
 struct codec_entry_parser {
 	const char *key;
-	enum codec_entry_parser_value_type type;
+	bool required;
+	enum cfg_value_param_type type;
 	ufedmd_rc_t (*handle)(pipeline_codec_t *codec, void *value);
+	void (*revert)(pipeline_codec_t *codec);
 };
 
 ufedmd_rc_t create_standard_codec(pipeline_codec_t *codec,

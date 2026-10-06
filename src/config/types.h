@@ -11,26 +11,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "common/hashmap.h"
+#include "config/cfg_types.h"
+
 typedef struct cfg_string_param {
 	char *str;
 	size_t len;
 } cfg_str_param_t;
-
-enum cfg_value_param_type {
-	CFG_VALUE_PARAM_TYPE_STRING,
-	CFG_VALUE_PARAM_TYPE_INTEGER,
-	CFG_VALUE_PARAM_TYPE_BOOLEAN,
-	CFG_VALUE_PARAM_TYPE_DOUBLE,
-};
 
 typedef struct cfg_value_param {
 	enum cfg_value_param_type type;
 	union {
 		bool flag;
 		cfg_str_param_t string;
-		unsigned int integer;
+		unsigned int u_integer;
+		int integer;
 		double real;
-	} value;
+	} _value;
 } cfg_value_param_t;
 
 struct key_value_pair {
@@ -39,9 +36,7 @@ struct key_value_pair {
 };
 
 struct cfg_dict {
-	struct key_value_pair *key_val_pairs;
-	size_t key_value_pairs_count;
-	size_t __used;
+	struct hashmap *values;
 };
 
 #endif

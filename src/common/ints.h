@@ -15,9 +15,9 @@
 
 #include "common/types.h"
 
-static inline size_t round_up(size_t n, size_t step)
+static inline size_t div_round_up(size_t n, size_t d)
 {
-	return ((n + step - 1) / step) * step;
+	return ((n) + (d)-1) / d;
 }
 
 static inline bool multiplication_u64_would_overflow(uint64_t a, uint64_t b)

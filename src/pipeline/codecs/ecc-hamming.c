@@ -671,7 +671,7 @@ struct hamming_codec_priv {
 static bool verify_has_enough_oob_storage_for_hamming_ecc(
     size_t datalen, size_t step_size, size_t ooblen)
 {
-	return round_up(datalen, step_size) <= (ooblen / 3);
+	return div_round_up(datalen, step_size) <= (ooblen / 3);
 }
 
 static codec_transform_rc_t hamming_encode(
@@ -700,7 +700,8 @@ static codec_transform_rc_t hamming_encode(
 	}
 
 	for (ecc_step_idx = 0;
-	    ecc_step_idx < round_up(datalen, priv->step_size); ecc_step_idx++) {
+	    ecc_step_idx < div_round_up(datalen, priv->step_size);
+	    ecc_step_idx++) {
 		if (ecc_sw_hamming_calculate(
 			databuf, priv->step_size, ecccalc, false) < 0) {
 			CODEC_ANSWER_NACK_WITH_RC(
@@ -801,7 +802,7 @@ static bool hamming_validate_write_spans_size_sufficient(
 {
 	struct hamming_codec_priv *priv = codec->priv;
 	return verify_has_enough_oob_storage_for_hamming_ecc(
-	    src_span_size, priv->step_size, dest_span_size);
+	    dest_span_size, priv->step_size, src_span_size);
 }
 
 static bool hamming_validate_read_spans_size_sufficient(
@@ -881,11 +882,15 @@ exit:
 
 static struct codec_entry_parser parsers[] = {
     {.key = "steps",
-	.type = CODEC_ENTRY_PARSER_VALUE_TYPE_UINT,
-	.handle = handle_steps_entry},
+	.required = true,
+	.type = CFG_VALUE_PARAM_TYPE_UNSIGNED_INTEGER,
+	.handle = handle_steps_entry,
+	.revert = default_revert_entry},
     {.key = "step_size",
-	.type = CODEC_ENTRY_PARSER_VALUE_TYPE_UINT,
-	.handle = handle_step_size_entry},
+	.required = false,
+	.type = CFG_VALUE_PARAM_TYPE_UNSIGNED_INTEGER,
+	.handle = handle_step_size_entry,
+	.revert = default_revert_entry},
 };
 
 static bool validate_mtd_page_size_against_ecc_steps(
@@ -917,12 +922,17 @@ ufedmd_rc_t init_hamming_codec(pipeline_codec_t *base,
     struct proxy_mtd_info *mtd_info, struct cfg_dict *config)
 {
 	ufedmd_rc_t ret;
+	struct hamming_codec_priv *priv;
 
 	ALLOCATE_PRIVATE_DATA_OR_FAIL(base->priv, struct hamming_codec_priv);
 
+	/* Set default of step size to be 256 */
+	priv = base->priv;
+	priv->step_size = 256;
+
 	ret = create_standard_codec(base, hamming_deinit, config, parsers,
 	    ARRAY_SIZE(parsers), &hamming_write_ops, &hamming_read_ops);
-	if (UFEDMD_RC_CHECK_SUCCESS(ret)) {
+	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
 		goto exit;
 	}
 

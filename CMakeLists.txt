@@ -20,7 +20,7 @@ set(SOURCES src/main.c
             src/pipeline/codec.c
             src/pipeline/page_layout.c
             src/pipeline/codecs/ecc-hamming.c
-            src/pipeline/codecs/fill-bytes.c
+            src/pipeline/codecs/memset.c
             src/pipeline/codecs/xor.c)
 
 set(KERNEL_USER_SOURCES src/kernel/user/common/proxy_dev.c)

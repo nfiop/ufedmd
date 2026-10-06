@@ -26,9 +26,15 @@ struct codec_initializer {
 
 extern ufedmd_rc_t init_hamming_codec(pipeline_codec_t *base,
     struct proxy_mtd_info *mtd_info, struct cfg_dict *config);
+extern ufedmd_rc_t init_xor_codec(pipeline_codec_t *base,
+    struct proxy_mtd_info *mtd_info, struct cfg_dict *config);
+extern ufedmd_rc_t init_memset_codec(pipeline_codec_t *base,
+    struct proxy_mtd_info *mtd_info, struct cfg_dict *config);
 
 static const struct codec_initializer s_initializers[] = {
     {.name = "hamming", .init = init_hamming_codec},
+    {.name = "memset", .init = init_memset_codec},
+    {.name = "xor", .init = init_xor_codec},
 };
 
 static codec_transform_rc_t nack_codec_write(
@@ -549,6 +555,8 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
 	*codec_contextp = context;
 
 	UFEDMD_RC_SET_SUCCESS(ret);
+	goto exit;
+
 free_context:
 	free(context);
 exit:
@@ -636,6 +644,8 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 	*codec_contextp = context;
 
 	UFEDMD_RC_SET_SUCCESS(ret);
+	goto exit;
+
 free_context:
 	free(context);
 exit:
@@ -778,7 +788,7 @@ static bool check_span_name_valid(const char *span_name, size_t namelen)
 
 	size_t ch_idx, tmp_idx;
 	char ch;
-	const char *allowed_special_chars = "!@#$\%^&*()+-_";
+	const char *allowed_special_chars = "!@#$^&*()+-_";
 	bool contains_allowed_char;
 
 	for (ch_idx = 0; ch_idx < namelen; ch_idx++) {
@@ -786,7 +796,7 @@ static bool check_span_name_valid(const char *span_name, size_t namelen)
 		/* Allow only -
 		 * 1. A-Z, a-z
 		 * 2. 0-9
-		 * 3. !@#$%^&*()?+_-
+		 * 3. !@#$^&*()?+_-
 		 */
 		if ((uint8_t)ch >= (uint8_t)'a' && (uint8_t)ch <= 'z')
 			continue;
@@ -795,7 +805,8 @@ static bool check_span_name_valid(const char *span_name, size_t namelen)
 		if ((uint8_t)ch >= (uint8_t)'0' && (uint8_t)ch <= (uint8_t)'9')
 			continue;
 		contains_allowed_char = false;
-		for (tmp_idx = 0; tmp_idx < ARRAY_SIZE(allowed_special_chars);
+		// FIXME: Figure out why ARRAY_SIZE() doesn't work here.
+		for (tmp_idx = 0; tmp_idx < strlen(allowed_special_chars);
 		    tmp_idx++) {
 			if (allowed_special_chars[tmp_idx] == ch) {
 				contains_allowed_char = true;
@@ -815,9 +826,10 @@ static ufedmd_rc_t find_or_add_new_span(struct hashmap *spans,
     bool *new_span_added)
 {
 	ufedmd_rc_t ret;
-	void *hashmap_ret;
+	void *hashmap_ret = NULL;
 	size_t namelen;
 	struct pipeline_page_layout_span span;
+	memset(&span, 0, sizeof(span));
 
 	assert(spanp != NULL);
 
@@ -857,6 +869,8 @@ static ufedmd_rc_t find_or_add_new_span(struct hashmap *spans,
 		goto exit;
 	}
 
+	span.idx = hashmap_count(spans);
+
 	hashmap_ret = (void *)hashmap_set(spans, &span);
 	if (!hashmap_ret && hashmap_oom(spans)) {
 		UFEDMD_RC_SET(
@@ -868,6 +882,11 @@ static ufedmd_rc_t find_or_add_new_span(struct hashmap *spans,
 	}
 
 	*new_span_added = true;
+
+	hashmap_ret = (void *)hashmap_get(spans, &span);
+	assert(hashmap_ret != NULL);
+	*spanp = hashmap_ret;
+
 	UFEDMD_RC_SET_SUCCESS(ret);
 
 exit:
@@ -1168,7 +1187,7 @@ static ufedmd_rc_t initialize_pipelines(struct nand_pipeline_scheme *scheme,
 	/* Pipline index 0 is reserved, and real pipeline index starts at 1
 	 */
 	for (idx = 1; idx < pipelines->objs_count + 1; idx++) {
-		cfg_cur_obj = &cfg_objs[idx];
+		cfg_cur_obj = &cfg_objs[idx - 1];
 		cur = &scheme->demux.pipelines[idx];
 
 		cur->name = strdup((const char *)cfg_cur_obj->name.str);
@@ -1216,7 +1235,7 @@ static ufedmd_rc_t initialize_pipelines(struct nand_pipeline_scheme *scheme,
 		/* Set a new entry to the pointer of the new object in the
 		 * hashmap.
 		 */
-		hashmap_ret = (void *)hashmap_set(scheme->pipelines, cur);
+		hashmap_ret = (void *)hashmap_set(scheme->pipelines, &cur);
 		if (!hashmap_ret && hashmap_oom(scheme->pipelines)) {
 			UFEDMD_RC_SET(
 			    ret, UFEDMD_RC_HASHTABLE_MEMORY_ALLOCATION_FAILED);
@@ -1267,11 +1286,12 @@ static ufedmd_rc_t add_partition_details(partition_t *partition,
 {
 	ufedmd_rc_t ret;
 	pipeline_t pipeline_comparee;
+	pipeline_t *comparep;
 	pipeline_t **pipelinep;
 
 	pipeline_comparee.name = pipeline->str;
-	pipelinep =
-	    (pipeline_t **)hashmap_get(pipelines_map, &pipeline_comparee);
+	comparep = &pipeline_comparee;
+	pipelinep = (pipeline_t **)hashmap_get(pipelines_map, &comparep);
 	if (!pipelinep) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_NOT_FOUND);
 		goto exit;

@@ -36,23 +36,26 @@ void destroy_scalar_param(cfg_value_param_t *param)
 	if (param->type != CFG_VALUE_PARAM_TYPE_STRING)
 		return;
 
-	destroy_string_param(&param->value.string);
+	destroy_string_param(&param->_value.string);
 }
 
-void print_cfg_scalar_value(cfg_value_param_t *param)
+void print_cfg_scalar_value(const cfg_value_param_t *param)
 {
 	switch (param->type) {
 	case CFG_VALUE_PARAM_TYPE_STRING:
-		printf("%s", param->value.string.str);
+		printf("%s", param->_value.string.str);
 		break;
 	case CFG_VALUE_PARAM_TYPE_INTEGER:
-		printf("%d", param->value.integer);
+		printf("%d", param->_value.integer);
+		break;
+	case CFG_VALUE_PARAM_TYPE_UNSIGNED_INTEGER:
+		printf("%u", param->_value.u_integer);
 		break;
 	case CFG_VALUE_PARAM_TYPE_DOUBLE:
-		printf("%f", param->value.real);
+		printf("%f", param->_value.real);
 		break;
 	case CFG_VALUE_PARAM_TYPE_BOOLEAN:
-		printf("%s", param->value.flag ? "true" : "false");
+		printf("%s", param->_value.flag ? "true" : "false");
 		break;
 	default:
 		printf("(?)");
@@ -68,22 +71,22 @@ cfg_return_code_t create_scalar_param(cfg_value_param_t *param, json_t *value)
 	switch (type) {
 	case JSON_STRING:
 		ret = adopt_string_param(
-		    &param->value.string, json_string_value(value));
+		    &param->_value.string, json_string_value(value));
 		if (!CFG_RC_CHECK_SUCCESS(ret))
 			goto exit;
 		param->type = CFG_VALUE_PARAM_TYPE_STRING;
 		break;
 	case JSON_INTEGER:
-		param->value.integer = json_integer_value(value);
+		param->_value.integer = json_integer_value(value);
 		param->type = CFG_VALUE_PARAM_TYPE_INTEGER;
 		break;
 	case JSON_REAL:
-		param->value.real = json_real_value(value);
+		param->_value.real = json_real_value(value);
 		param->type = CFG_VALUE_PARAM_TYPE_DOUBLE;
 		break;
 	case JSON_TRUE:
 	case JSON_FALSE:
-		param->value.flag = json_boolean_value(value);
+		param->_value.flag = json_boolean_value(value);
 		param->type = CFG_VALUE_PARAM_TYPE_BOOLEAN;
 		break;
 	default:
@@ -111,62 +114,9 @@ void destroy_optional_string_param(cfg_str_param_t *param)
 	param->len = 0;
 }
 
-void destroy_key_value_pair(struct key_value_pair *pair)
-{
-	destroy_string_param(&pair->key);
-	destroy_scalar_param(&pair->value);
-}
-
 void destroy_dict(struct cfg_dict *dict)
 {
-	size_t idx;
-	for (idx = 0; idx < dict->key_value_pairs_count; idx++) {
-		destroy_key_value_pair(&dict->key_val_pairs[idx]);
-	}
-
-	free(dict->key_val_pairs);
-}
-
-cfg_return_code_t append_pair_to_dict(
-    struct cfg_dict *dict, const char *key, json_t *value)
-{
-	cfg_return_code_t ret;
-	struct key_value_pair *pair;
-
-	if (!json_is_string(value) && !json_is_integer(value) &&
-	    !json_is_real(value) && !json_is_true(value) &&
-	    !json_is_false(value)) {
-		CFG_RC_SET_WITH_OFFENDING_NODE(
-		    ret, CFG_RC_NODE_IS_NOT_SCALAR, value);
-		goto exit;
-	}
-
-	if (dict->__used == dict->key_value_pairs_count) {
-		CFG_RC_SET_WITH_OFFENDING_NODE(
-		    ret, CFG_RC_INVALID_PAIR_POSITION, value);
-		goto exit;
-	}
-
-	/* Create a unique key-value pair */
-	ret = find_key_value_pair(dict, &pair, key);
-	if (CFG_RC_CHECK_SUCCESS(ret)) {
-		CFG_RC_SET_WITH_OFFENDING_NODE(
-		    ret, CFG_RC_ENTRY_ALREADY_PARSED, value);
-		goto exit;
-	}
-
-	ret = create_key_value_pair(
-	    &dict->key_val_pairs[dict->__used], key, value);
-	if (!CFG_RC_CHECK_SUCCESS(ret)) {
-		CFG_RC_SET_OFFENDING_NODE(ret, value);
-		return ret;
-	}
-
-	dict->__used++;
-
-	CFG_RC_SET_SUCCESS(ret);
-exit:
-	return ret;
+	hashmap_free(dict->values);
 }
 
 cfg_return_code_t parse_bare_range_object(struct range *obj, json_t *range)
@@ -251,78 +201,8 @@ exit:
 	return ret;
 }
 
-cfg_return_code_t create_key_value_pair(
-    struct key_value_pair *pair, const char *key, json_t *value)
-{
-	cfg_return_code_t ret;
-
-	ret = adopt_string_param(&pair->key, key);
-	if (!CFG_RC_CHECK_SUCCESS(ret))
-		return ret;
-
-	ret = create_scalar_param(&pair->value, value);
-	if (CFG_RC_CHECK_SUCCESS(ret))
-		goto exit;
-
-	destroy_string_param(&pair->key);
-exit:
-	return ret;
-}
-
-cfg_return_code_t find_key_value_pair(
-    struct cfg_dict *dict, struct key_value_pair **pairp, const char *key)
-{
-	cfg_return_code_t ret;
-	size_t idx;
-	struct key_value_pair *pair;
-	size_t key_str_len;
-
-	key_str_len = strlen(key);
-	if (key_str_len > MAX_NAME_LEN) {
-		CFG_RC_SET(ret, CFG_RC_SCALAR_COMPAREE_TOO_BIG);
-		goto exit;
-	}
-
-	for (idx = 0; idx < dict->__used; idx++) {
-		pair = &dict->key_val_pairs[idx];
-
-		if (pair->key.len != key_str_len)
-			continue;
-
-		if (!strncmp(pair->key.str, key, pair->key.len)) {
-			*pairp = pair;
-			CFG_RC_SET_SUCCESS(ret);
-			goto exit;
-		}
-	}
-
-	CFG_RC_SET(ret, CFG_RC_KEY_NOT_FOUND);
-exit:
-	return ret;
-}
-
-cfg_return_code_t allocate_pairs_array(
-    struct key_value_pair **arrp, size_t count)
-{
-	cfg_return_code_t ret;
-	struct key_value_pair *arr;
-
-	arr = calloc(count, sizeof(struct key_value_pair));
-	if (!arr) {
-		CFG_RC_SET(ret, CFG_RC_MEMORY_ALLOCATION_FAILED);
-		goto exit;
-	}
-
-	*arrp = arr;
-
-	CFG_RC_SET_SUCCESS(ret);
-exit:
-	return ret;
-}
-
 const char *return_code_value_to_string(cfg_return_code_enum_t rc)
 {
-
 	switch (rc) {
 	case CFG_RC_SUCCESS:
 		return "Success (?)";

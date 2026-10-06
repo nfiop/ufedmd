@@ -151,10 +151,22 @@ static void print_range(struct cfg_span_specifier *range)
 	    range->span_name.str, start_buf, length_buf);
 }
 
+static bool print_dict_values(const void *item, void *udata)
+{
+	const struct key_value_pair *pair = item;
+	UNUSED(udata);
+
+	printf("\t  %s: ", pair->key.str);
+	print_cfg_scalar_value(&pair->value);
+	printf("\n");
+
+	return true;
+}
+
 void print_codecs_section(struct cfg_codecs_section *codecs)
 {
 	struct cfg_codec_obj *objs, *cur;
-	size_t idx, dict_idx;
+	size_t idx;
 	struct cfg_dict *dict;
 
 	objs = codecs->objs;
@@ -167,14 +179,7 @@ void print_codecs_section(struct cfg_codecs_section *codecs)
 		dict = &cur->special_params;
 
 		printf("\tParameters:\n");
-		for (dict_idx = 0; dict_idx < dict->key_value_pairs_count;
-		    dict_idx++) {
-			printf(
-			    "\t  %s: ", dict->key_val_pairs[dict_idx].key.str);
-			print_cfg_scalar_value(
-			    &dict->key_val_pairs[dict_idx].value);
-			printf("\n");
-		}
+		hashmap_scan(dict->values, print_dict_values, NULL);
 	}
 }
 

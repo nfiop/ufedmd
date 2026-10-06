@@ -26,16 +26,16 @@
 
 #include <assert.h>
 
-struct fill_bytes_codec_priv {
+struct memset_codec_priv {
 	uint8_t byte_pattern;
 };
 
-static codec_transform_rc_t fill_bytes_write(
+static codec_transform_rc_t memset_write(
     struct pipeline_codec *codec, write_codec_context_t *context)
 {
 	codec_transform_rc_t ret;
 
-	struct fill_bytes_codec_priv *priv = codec->priv;
+	struct memset_codec_priv *priv = codec->priv;
 	uint8_t byte_pattern;
 	uint8_t *bytebuf;
 	size_t byte_idx;
@@ -51,17 +51,17 @@ static codec_transform_rc_t fill_bytes_write(
 	return ret;
 }
 
-static void fill_bytes_deinit(struct pipeline_codec *codec)
+static void memset_deinit(struct pipeline_codec *codec)
 {
 	free(codec->priv);
 }
 
-static bool fill_bytes_needs_source_span(void)
+static bool memset_needs_source_span(void)
 {
 	return false;
 }
 
-static bool fill_bytes_validate_spans_size_sufficient(
+static bool memset_validate_spans_size_sufficient(
     struct pipeline_codec *codec, size_t span1_size, size_t span2_size)
 {
 	UNUSED(codec);
@@ -70,12 +70,12 @@ static bool fill_bytes_validate_spans_size_sufficient(
 	return true;
 }
 
-static struct write_ops fill_bytes_write_ops = {
-    .on_write = fill_bytes_write,
-    .validate_spans_size_sufficient = fill_bytes_validate_spans_size_sufficient,
+static struct write_ops memset_write_ops = {
+    .on_write = memset_write,
+    .validate_spans_size_sufficient = memset_validate_spans_size_sufficient,
 
     /* Static methods */
-    .needs_source_span = fill_bytes_needs_source_span,
+    .needs_source_span = memset_needs_source_span,
 };
 
 static ufedmd_rc_t handle_byte_pattern_entry(
@@ -83,7 +83,7 @@ static ufedmd_rc_t handle_byte_pattern_entry(
 {
 	ufedmd_rc_t ret;
 	unsigned int byte_pattern;
-	struct fill_bytes_codec_priv *priv;
+	struct memset_codec_priv *priv;
 
 	byte_pattern = *(unsigned int *)value;
 
@@ -102,22 +102,24 @@ exit:
 
 struct codec_entry_parser parsers[] = {
     {.key = "byte_pattern",
-	.type = CODEC_ENTRY_PARSER_VALUE_TYPE_UINT,
-	.handle = handle_byte_pattern_entry},
+	.required = true,
+	.type = CFG_VALUE_PARAM_TYPE_UNSIGNED_INTEGER,
+	.handle = handle_byte_pattern_entry,
+	.revert = default_revert_entry},
 };
 
-ufedmd_rc_t init_fill_bytes_codec(pipeline_codec_t *base,
+ufedmd_rc_t init_memset_codec(pipeline_codec_t *base,
     struct proxy_mtd_info *mtd_info, struct cfg_dict *config)
 {
 	ufedmd_rc_t ret;
 
 	UNUSED(mtd_info);
 
-	ALLOCATE_PRIVATE_DATA_OR_FAIL(base->priv, struct fill_bytes_codec_priv);
+	ALLOCATE_PRIVATE_DATA_OR_FAIL(base->priv, struct memset_codec_priv);
 
-	ret = create_standard_codec(base, fill_bytes_deinit, config, parsers,
-	    ARRAY_SIZE(parsers), &fill_bytes_write_ops, NULL);
-	if (UFEDMD_RC_CHECK_SUCCESS(ret)) {
+	ret = create_standard_codec(base, memset_deinit, config, parsers,
+	    ARRAY_SIZE(parsers), &memset_write_ops, NULL);
+	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
 		goto exit;
 	}
 
