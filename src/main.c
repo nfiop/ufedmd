@@ -229,6 +229,8 @@ int main(int argc, char **argv)
 
 	ret = open_proxy_device_state(prog_params.device_path, &state);
 	if (ret < 0) {
+		fprintf(stderr, "Failed to open %s: %s\n",
+		    prog_params.device_path, strerror(-ret));
 		goto exit;
 	}
 
