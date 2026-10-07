@@ -780,17 +780,17 @@ static bool check_non_overlapping_sorted(
 
 static bool check_span_name_valid(const char *span_name, size_t namelen)
 {
-	/* TODO: We assume ASCII names, we should probably make it clear
-	 * somehow.
-	 */
-	assert(span_name != NULL);
-	assert(namelen != 0);
-
 	size_t ch_idx, tmp_idx;
 	char ch;
 	const char *allowed_special_chars = "!@#$^&*()+-_";
 	bool contains_allowed_char;
 
+	assert(span_name != NULL);
+	assert(namelen != 0);
+
+	/* TODO: We assume ASCII names, we should probably make it clear
+	 * somehow.
+	 */
 	for (ch_idx = 0; ch_idx < namelen; ch_idx++) {
 		ch = span_name[ch_idx];
 		/* Allow only -
