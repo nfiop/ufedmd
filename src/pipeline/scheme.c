@@ -471,6 +471,9 @@ static void pipeline_destroy(pipeline_t *pipeline)
 		    pipeline->write_codecs.codecs_count);
 	}
 
+	if (pipeline->write_spans)
+		free(pipeline->write_spans);
+
 	pipeline_page_layout_destroy(&pipeline->page_layout);
 }
 
@@ -1134,6 +1137,117 @@ static void destroy_pipelines(
 	free(scheme->demux.pipelines);
 }
 
+static ufedmd_rc_t set_request_mappings(struct cfg_request_span_mappings *obj,
+    struct span_mappings *mappings, struct pipeline_page_layout *layout)
+{
+	ufedmd_rc_t ret;
+	void *hashmap_ret;
+	struct pipeline_page_layout_span span;
+
+	span.name = (char *)obj->data_span_name.str;
+	hashmap_ret = (void *)hashmap_get(layout->spans, &span);
+	if (!hashmap_ret) {
+		UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_SPAN_NOT_FOUND);
+		goto exit;
+	}
+
+	mappings->data_span = hashmap_ret;
+
+	span.name = (char *)obj->oob_span_name.str;
+	hashmap_ret = (void *)hashmap_get(layout->spans, &span);
+	if (!hashmap_ret) {
+		UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_SPAN_NOT_FOUND);
+		goto exit;
+	}
+
+	mappings->oob_span = hashmap_ret;
+
+	UFEDMD_RC_SET_SUCCESS(ret);
+exit:
+	return ret;
+}
+
+static ufedmd_rc_t create_pipeline_obj(pipeline_t *obj, size_t idx,
+    struct cfg_pipeline_obj *cfg_obj, struct hashmap *codecs_map,
+    struct proxy_mtd_info *mtd_info)
+{
+	ufedmd_rc_t ret;
+
+	obj->name = strdup((const char *)cfg_obj->name.str);
+	if (!obj->name) {
+		UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
+		goto exit;
+	}
+
+	/* Before adding the pipeline codecs, we must initialize the
+	 * pipeline page layout. That ensures we can also check for
+	 * incompatible codecs (for example, codecs that require
+	 * non-existing span), or overlapping layout parts.
+	 */
+
+	ret = add_pipeline_layout_parts(obj, mtd_info, &cfg_obj->page_layout);
+	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
+		goto free_name;
+	}
+
+	/* A request mapping is essentially the way for a user to ask
+	 * to map the data and OOB buffers in a MTD write request to a span
+	 * to be "extracted" to.
+	 * Similarly, for a read request, the mapped data and OOB spans
+	 * are copied to the data and OOB buffers from the MTD read request.
+	 */
+	ret = set_request_mappings(
+	    &cfg_obj->read_mappings, &obj->read_spans, &obj->page_layout);
+	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
+		goto free_layout;
+	}
+
+	if (cfg_obj->write_mappings) {
+		obj->write_spans = calloc(1, sizeof(struct span_mappings));
+		if (!obj->write_spans) {
+			UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
+			goto free_layout;
+		}
+
+		ret = set_request_mappings(cfg_obj->write_mappings,
+		    obj->write_spans, &obj->page_layout);
+		if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
+			goto free_write_spans;
+		}
+	}
+
+	ret = add_pipeline_read_codecs(obj, &cfg_obj->read_codecs, codecs_map);
+	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
+		goto free_write_spans;
+	}
+
+	if (cfg_obj->write_codecs) {
+		ret = add_pipeline_write_codecs(
+		    obj, cfg_obj->write_codecs, codecs_map);
+		if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
+			goto destroy_read_codecs;
+		}
+	}
+
+	obj->idx = idx;
+
+	UFEDMD_RC_SET_SUCCESS(ret);
+	goto exit;
+
+destroy_read_codecs:
+	destroy_pipeline_read_codec_contexts(
+	    &obj->read_codecs, obj->read_codecs.codecs_count);
+free_write_spans:
+	if (obj->write_spans)
+		free(obj->write_spans);
+free_layout:
+	pipeline_page_layout_destroy(&obj->page_layout);
+free_name:
+	free(obj->name);
+exit:
+	return ret;
+}
+
 static ufedmd_rc_t initialize_pipelines(struct nand_pipeline_scheme *scheme,
     struct cfg_pipelines_section *pipelines, struct proxy_mtd_info *mtd_info)
 {
@@ -1189,48 +1303,10 @@ static ufedmd_rc_t initialize_pipelines(struct nand_pipeline_scheme *scheme,
 	for (idx = 1; idx < pipelines->objs_count + 1; idx++) {
 		cfg_cur_obj = &cfg_objs[idx - 1];
 		cur = &scheme->demux.pipelines[idx];
-
-		cur->name = strdup((const char *)cfg_cur_obj->name.str);
-		if (!cur->name) {
-			UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
+		ret = create_pipeline_obj(
+		    cur, idx, cfg_cur_obj, scheme->codecs, mtd_info);
+		if (!UFEDMD_RC_CHECK_SUCCESS(ret))
 			goto free_entries;
-		}
-
-		/* Before adding the pipeline codecs, we must initialize the
-		 * pipeline page layout. That ensures we can also check for
-		 * incompatible codecs (for example, codecs that require
-		 * non-existing span), or overlapping layout parts.
-		 */
-
-		ret = add_pipeline_layout_parts(
-		    cur, mtd_info, &cfg_cur_obj->page_layout);
-		if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
-			free(cur->name);
-			goto free_entries;
-		}
-
-		// TODO: Add parsing of span mappings
-
-		ret = add_pipeline_read_codecs(
-		    cur, &cfg_cur_obj->read_codecs, scheme->codecs);
-		if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
-			free(cur->name);
-			goto free_entries;
-		}
-
-		if (cfg_cur_obj->write_codecs) {
-			ret = add_pipeline_write_codecs(
-			    cur, cfg_cur_obj->write_codecs, scheme->codecs);
-			if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
-				free(cur->name);
-				destroy_pipeline_read_codec_contexts(
-				    &cur->read_codecs,
-				    cur->read_codecs.codecs_count);
-				goto free_entries;
-			}
-		}
-
-		cur->idx = idx;
 
 		/* Set a new entry to the pointer of the new object in the
 		 * hashmap.
