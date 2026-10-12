@@ -791,9 +791,6 @@ static bool check_span_name_valid(const char *span_name, size_t namelen)
 	assert(span_name != NULL);
 	assert(namelen != 0);
 
-	/* TODO: We assume ASCII names, we should probably make it clear
-	 * somehow.
-	 */
 	for (ch_idx = 0; ch_idx < namelen; ch_idx++) {
 		ch = span_name[ch_idx];
 		/* Allow only -
