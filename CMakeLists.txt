@@ -8,6 +8,7 @@ message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "System: ${CMAKE_SYSTEM_NAME}")
 
 set(SOURCES src/main.c
+            src/params.c
             src/common/parse.c
             src/common/hashmap.c
             src/common/logging.c
