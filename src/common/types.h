@@ -14,6 +14,11 @@
 
 #define UNUSED(__x) (void)__x
 
+/* This macro is inspired from the Linux kernel - it should allocate
+ * a memory area and zero it afterwards.
+ */
+#define zalloc_obj(__x) calloc(1, sizeof(*__x))
+
 struct range {
 	uint64_t start;
 	uint64_t length;

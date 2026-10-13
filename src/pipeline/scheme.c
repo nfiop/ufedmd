@@ -991,7 +991,7 @@ static ufedmd_rc_t add_pipeline_layout_parts(pipeline_t *pipeline,
 			goto free_parts;
 		}
 
-		part = calloc(1, sizeof(pipeline_page_layout_part_t));
+		part = zalloc_obj(part);
 		if (!part) {
 			UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
 			goto free_parts;
@@ -1200,7 +1200,7 @@ static ufedmd_rc_t create_pipeline_obj(pipeline_t *obj, size_t idx,
 	}
 
 	if (cfg_obj->write_mappings) {
-		obj->write_spans = calloc(1, sizeof(struct span_mappings));
+		obj->write_spans = zalloc_obj(obj->write_spans);
 		if (!obj->write_spans) {
 			UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
 			goto free_layout;

@@ -158,7 +158,7 @@ static cfg_return_code_t parse_write_codec_specifier(
 	}
 
 	if (src) {
-		obj->src = calloc(1, sizeof(struct cfg_span_specifier));
+		obj->src = zalloc_obj(obj->src);
 		if (!obj->src) {
 			CFG_RC_SET(ret, CFG_RC_MEMORY_ALLOCATION_FAILED);
 			goto exit;
@@ -555,8 +555,7 @@ static cfg_return_code_t add_pipeline(
 	}
 
 	if (__write_codecs && __write_mappings) {
-		pipeline->write_codecs =
-		    calloc(1, sizeof(struct cfg_write_codecs_sequence));
+		pipeline->write_codecs = zalloc_obj(pipeline->write_codecs);
 		if (!pipeline->write_codecs) {
 			CFG_RC_SET(ret, CFG_RC_MEMORY_ALLOCATION_FAILED);
 			goto destroy_read_codecs;
@@ -567,8 +566,7 @@ static cfg_return_code_t add_pipeline(
 			goto free_write_codecs;
 		}
 
-		pipeline->write_mappings =
-		    calloc(1, sizeof(struct cfg_request_span_mappings));
+		pipeline->write_mappings = zalloc_obj(pipeline->write_mappings);
 		if (!pipeline->write_mappings) {
 			CFG_RC_SET(ret, CFG_RC_MEMORY_ALLOCATION_FAILED);
 			goto destroy_write_codecs;
