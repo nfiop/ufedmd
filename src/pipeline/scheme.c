@@ -494,7 +494,7 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
 		goto exit;
 	}
 
-	context = malloc(sizeof(pipeline_read_codec_context_t));
+	context = zalloc_obj(context);
 	if (context == NULL) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
 		goto exit;
@@ -583,7 +583,7 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 		goto exit;
 	}
 
-	context = malloc(sizeof(pipeline_write_codec_context_t));
+	context = zalloc_obj(context);
 	if (context == NULL) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
 		goto exit;
