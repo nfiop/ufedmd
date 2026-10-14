@@ -1678,23 +1678,24 @@ static bool set_partition_pipeline_on_array_per_page(
 	struct io_demux *demux = &scheme->demux;
 	uint64_t eraseblock_idx;
 	uint64_t page_idx;
+	pipeline_index_t val;
+	size_t arr_idx;
 
 	for (eraseblock_idx = partition->eraseblocks.start;
 	    eraseblock_idx <
 	    partition->eraseblocks.start + partition->eraseblocks.length;
 	    eraseblock_idx++) {
 		for (page_idx = partition->pages.start;
-		    page_idx <=
-		    partition->pages.start + partition->pages.length;
+		    page_idx < partition->pages.start + partition->pages.length;
 		    page_idx++) {
-			if (demux
-				->arr[eraseblock_idx *
-					  demux->flash_pages_per_sector_stride +
-				      page_idx] !=
-			    AUTOMATIC_NACK_PIPELINE_INDEX) {
+			arr_idx = eraseblock_idx *
+				      demux->flash_pages_per_sector_stride +
+				  page_idx;
+			val = demux->arr[arr_idx];
+			if (val != AUTOMATIC_NACK_PIPELINE_INDEX) {
 				return false;
 			}
-			demux->arr[eraseblock_idx] = partition->pipeline->idx;
+			demux->arr[arr_idx] = partition->pipeline->idx;
 		}
 	}
 
@@ -1794,7 +1795,6 @@ static ufedmd_rc_t initialize_pipeline_selector(
 		    scheme, mtd_info);
 	}
 
-	UFEDMD_RC_SET_SUCCESS(ret);
 exit:
 	return ret;
 }
