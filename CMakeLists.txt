@@ -20,6 +20,7 @@ set(SOURCES src/main.c
             src/pipeline/scheme.c
             src/pipeline/codec.c
             src/pipeline/page_layout.c
+            src/pipeline/queues.c
             src/pipeline/codecs/ecc-hamming.c
             src/pipeline/codecs/memset.c
             src/pipeline/codecs/xor.c)

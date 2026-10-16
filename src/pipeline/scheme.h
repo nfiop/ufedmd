@@ -57,13 +57,13 @@ typedef struct {
 } pipeline_read_codec_context_t;
 
 struct write_codec_contexts_set {
-	size_t codecs_count;
-	pipeline_write_codec_context_t **codecs;
+	size_t count;
+	pipeline_write_codec_context_t **contexts;
 };
 
 struct read_codec_contexts_set {
-	size_t codecs_count;
-	pipeline_read_codec_context_t **codecs;
+	size_t count;
+	pipeline_read_codec_context_t **contexts;
 };
 
 struct span_mappings {

@@ -14,6 +14,11 @@
 #include "pipeline/types.h"
 #include "return_codes.h"
 
+typedef struct codec_rc {
+	codec_rc_enum_t rc;
+	int _errno;
+} codec_transform_rc_t;
+
 #define CODEC_ANSWER_NACK_WITH_RC(__rc, __val)                                 \
 	do {                                                                   \
 		__rc.rc = __val;                                               \
@@ -32,6 +37,8 @@
 		__rc._errno = 0;                                               \
 	} while (0)
 
+#define CODEC_RC_CHECK_SUCCESS(__var_name) __var_name.rc == CODEC_OK
+
 #define ALLOCATE_PRIVATE_DATA_OR_FAIL(_priv, _struct)                          \
 	do {                                                                   \
 		ufedmd_rc_t __ret;                                             \
@@ -42,11 +49,6 @@
 			return __ret;                                          \
 		}                                                              \
 	} while (0)
-
-typedef struct codec_rc {
-	codec_rc_enum_t rc;
-	int _errno;
-} codec_transform_rc_t;
 
 struct pipeline_codec;
 

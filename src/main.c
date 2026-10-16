@@ -23,7 +23,6 @@
 #include <unistd.h>
 
 /* Kernel module headers */
-#include "proxy_dev.h"
 #include "proxy_ioctl.h"
 #include "shared_mem.h"
 
@@ -31,6 +30,7 @@
 #include "common/program_params.h"
 #include "config/common.h"
 #include "config/file_parser.h"
+#include "pipeline/queues.h"
 #include "pipeline/scheme.h"
 #include "return_codes.h"
 
@@ -38,18 +38,16 @@
 
 /* Externally recognized, so let's make it truly global. */
 struct program_params prog_params;
+struct cfg_scheme g_cfg_scheme;
+struct proxy_device_state g_device_state;
 
-static struct cfg_scheme s_cfg_scheme;
-static struct nand_pipeline_scheme s_scheme;
 static atomic_bool stop = false;
-static struct proxy_device_queue_state queues[PROXY_MAX_QUEUES_COUNT];
-static struct proxy_device_state state;
 
 static cfg_return_code_t parse_given_config_file(FILE *fp)
 {
 	cfg_return_code_t ret;
 
-	ret = parse_config_file(fp, &s_cfg_scheme);
+	ret = parse_config_file(fp, &g_cfg_scheme);
 
 	if (!CFG_RC_CHECK_SUCCESS(ret)) {
 		fprintf(
@@ -70,10 +68,8 @@ static void sigint_handler(int sig)
 	atomic_store(&stop, true);
 }
 
-static int create_scheme(struct proxy_device_state *state, char *config_path)
+static int create_cfg_scheme(char *config_path)
 {
-	(void)state;
-
 	ufedmd_rc_t ret;
 	cfg_return_code_t cfg_ret;
 	FILE *fp = fopen(config_path, "rb");
@@ -85,22 +81,22 @@ static int create_scheme(struct proxy_device_state *state, char *config_path)
 	cfg_ret = parse_given_config_file(fp);
 	if (!CFG_RC_CHECK_SUCCESS(cfg_ret)) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_JSON_PARSER_FAILED);
-		goto exit;
+		goto close_file;
 	}
 
 	if (prog_params.verbose) {
 		printf(
 		    "JSON configuration file - %s, containing:\n", config_path);
-		print_codecs_section(&s_cfg_scheme.codecs);
+		print_codecs_section(&g_cfg_scheme.codecs);
 		printf("\n");
-		print_pipelines_section(&s_cfg_scheme.pipelines);
+		print_pipelines_section(&g_cfg_scheme.pipelines);
 		printf("\n");
-		print_partitions_section(&s_cfg_scheme.partitions);
+		print_partitions_section(&g_cfg_scheme.partitions);
 	}
 
-	ret = initialize_nand_pipeline_scheme(
-	    &s_scheme, &state->mtd_info, &s_cfg_scheme);
+	UFEDMD_RC_SET_SUCCESS(ret);
 
+close_file:
 	fclose(fp);
 
 exit:
@@ -137,16 +133,20 @@ int main(int argc, char **argv)
 		goto exit;
 	}
 
-	ret = open_proxy_device_state(prog_params.device_path, &state);
+	ret = open_proxy_device_state(prog_params.device_path, &g_device_state);
 	if (ret < 0) {
 		fprintf(stderr, "Failed to open %s: %s\n",
 		    prog_params.device_path, strerror(-ret));
 		goto exit;
 	}
 
-	ret = create_scheme(&state, prog_params.config_path);
+	ret = create_cfg_scheme(prog_params.config_path);
 	if (ret < 0)
 		goto destroy_proxy_device_state;
+
+	ret = create_queues();
+	if (ret < 0)
+		goto destroy_configuration_scheme;
 
 	ts.tv_sec = 0;
 	ts.tv_nsec = 100 * 1000 * 1000; // 100 ms
@@ -154,13 +154,12 @@ int main(int argc, char **argv)
 		nanosleep(&ts, NULL);
 	}
 
-	destroy_proxy_dev_queue_state(&queues[0]);
-	destroy_proxy_dev_queue_state(&queues[1]);
+	destroy_queues();
 
-	// FIXME: Destroy NAND pipeline scheme on quit
-
+destroy_configuration_scheme:
+	destroy_cfg_scheme(&g_cfg_scheme);
 destroy_proxy_device_state:
-	close_proxy_device(&state);
+	close_proxy_device(&g_device_state);
 exit:
 	return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

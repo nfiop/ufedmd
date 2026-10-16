@@ -97,6 +97,11 @@ exit:
 	return ret;
 }
 
+void destroy_cfg_scheme(struct cfg_scheme *scheme)
+{
+	deinit_scheme(scheme, ARRAY_SIZE(parsers));
+}
+
 cfg_return_code_t parse_config_file(FILE *fp, struct cfg_scheme *scheme)
 {
 	cfg_return_code_t ret;

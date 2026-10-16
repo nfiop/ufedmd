@@ -17,4 +17,6 @@ void print_partitions_section(struct cfg_partitions_section *partitions);
 
 cfg_return_code_t parse_config_file(FILE *fp, struct cfg_scheme *scheme);
 
+void destroy_cfg_scheme(struct cfg_scheme *scheme);
+
 #endif

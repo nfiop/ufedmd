@@ -28,6 +28,11 @@ typedef struct pipeline_page_layout_part {
 
 	struct range in_page_range;
 
+	/* This is used mainly during filling of a raw page buffer
+	 * to each span.
+	 */
+	struct range in_span_range;
+
 	/* Both pointers can be NULL, if there's nothing after or before
 	 * of the part.
 	 */
@@ -75,7 +80,5 @@ int validate_range_length_within_span(
 
 int calculate_real_range_length_within_span(
     size_t *lenp, size_t total_buf_length, struct range *range);
-
-int compose_raw_page_from_pipeline_page_layout(void);
 
 #endif

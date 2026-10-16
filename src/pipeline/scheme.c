@@ -114,24 +114,27 @@ static pipeline_codec_t nack_codec = {
     .priv = NULL,
 };
 
-/* 16 KiB is the biggest NAND page we have so far in the world for the
- * _biggest_ NAND chips in the market. We might adjust the buffer size
- * in runtime (i.e. shrink it) if needed.
- */
-static uint8_t nack_dummy_span_buf[16384];
-
+// The length will be changed in runtime, as well as parent_span.
 static pipeline_page_layout_part_t dummy_part = {
     .name = "",
     .part_idx = 0,
+    .parent_span = NULL,
+    .span_idx = 0,
     .in_page_range =
 	{
 	    .start = 0,
-	    .length = sizeof(nack_dummy_span_buf),
+	    .length = 0,
+	},
+    .in_span_range =
+	{
+	    .start = 0,
+	    .length = 0,
 	},
 };
 
 static pipeline_page_layout_part_t *pipeline0_layout_parts[] = {&dummy_part};
 
+// The buffer will be set from NULL to allocated on the heap.
 static struct pipeline_page_layout_span nack_codec_layout_span = {
     .name = "",
     .parts =
@@ -139,11 +142,8 @@ static struct pipeline_page_layout_span nack_codec_layout_span = {
 	    .objs = pipeline0_layout_parts,
 	    .parts_count = 1,
 	},
-    /* We could se this to NULL, but for sake of completeness and keeping
-     * everything in one standard, let's just have a dummy buffer.
-     */
-    .buf = nack_dummy_span_buf,
-    .total_len = sizeof(nack_dummy_span_buf),
+    .buf = NULL,
+    .total_len = 0,
 };
 
 static pipeline_read_codec_context_t nack_read_codec_context = {
@@ -172,11 +172,12 @@ static pipeline_write_codec_context_t nack_write_codec_context = {
     .dest_span = &nack_codec_layout_span,
 };
 
-static pipeline_read_codec_context_t *pipeline0_read_codecs[] = {
+static pipeline_read_codec_context_t *pipeline0_read_contexts[] = {
     &nack_read_codec_context};
-static pipeline_write_codec_context_t *pipeline0_write_codecs[] = {
+static pipeline_write_codec_context_t *pipeline0_write_contexts[] = {
     &nack_write_codec_context};
 
+static bool pipeline0_initialized = false;
 static pipeline_t pipeline0 = {
     .name = "Automatic NACK pipeline",
     .idx = AUTOMATIC_NACK_PIPELINE_INDEX,
@@ -191,13 +192,13 @@ static pipeline_t pipeline0 = {
 	},
     .read_codecs =
 	{
-	    .codecs = pipeline0_read_codecs,
-	    .codecs_count = 1,
+	    .contexts = pipeline0_read_contexts,
+	    .count = 1,
 	},
     .write_codecs =
 	{
-	    .codecs = pipeline0_write_codecs,
-	    .codecs_count = 1,
+	    .contexts = pipeline0_write_contexts,
+	    .count = 1,
 	},
 };
 
@@ -237,10 +238,15 @@ static void pipeline_page_layout_span_destroy(void *item)
 	free(span->name);
 }
 
-static ufedmd_rc_t fixup_pipeline0(void)
+static ufedmd_rc_t fixup_pipeline0_once(struct proxy_mtd_info *mtd_info)
 {
 	ufedmd_rc_t ret;
 	void *hashmap_ret;
+
+	if (pipeline0_initialized) {
+		UFEDMD_RC_SET_SUCCESS(ret);
+		goto exit;
+	}
 
 	// We don't set a destroy function. These structs are not
 	// heap-allocated.
@@ -270,6 +276,28 @@ static ufedmd_rc_t fixup_pipeline0(void)
 		UFEDMD_RC_SET(ret, UFEDMD_RC_HASHTABLE_HAS_EXISTING_ENTRY);
 		goto exit;
 	}
+
+	/* Adjust raw page buffer size to be the size of a page size of our MTD
+	 * including all OOB (ECC, bad block marker, other metadata) bytes.
+	 */
+	pipeline0.read_codecs.contexts[0]->data_span->buf =
+	    malloc(mtd_info->flash_page_size);
+	if (!pipeline0.read_codecs.contexts[0]->data_span->buf) {
+		UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
+		goto exit;
+	}
+
+	pipeline0.page_layout.parts.objs[0]->in_page_range.length =
+	    mtd_info->flash_page_size;
+	pipeline0.page_layout.parts.objs[0]->in_span_range.length =
+	    mtd_info->flash_page_size;
+	pipeline0.read_codecs.contexts[0]->data_span->total_len =
+	    mtd_info->flash_page_size;
+	pipeline0.page_layout.parts.objs[0]->parent_span =
+	    pipeline0.read_codecs.contexts[0]->data_span;
+
+	/* Only do this once. */
+	pipeline0_initialized = true;
 
 	UFEDMD_RC_SET_SUCCESS(ret);
 exit:
@@ -442,9 +470,9 @@ static void destroy_pipeline_read_codec_contexts(
 	 */
 	size_t idx;
 	for (idx = 0; idx < max_idx; idx++) {
-		free(set->codecs[idx]);
+		free(set->contexts[idx]);
 	}
-	free(set->codecs);
+	free(set->contexts);
 }
 
 static void destroy_pipeline_write_codec_contexts(
@@ -455,20 +483,20 @@ static void destroy_pipeline_write_codec_contexts(
 	 */
 	size_t idx;
 	for (idx = 0; idx < max_idx; idx++) {
-		free(set->codecs[idx]);
+		free(set->contexts[idx]);
 	}
-	free(set->codecs);
+	free(set->contexts);
 }
 
 static void pipeline_destroy(pipeline_t *pipeline)
 {
 	free(pipeline->name);
 	destroy_pipeline_read_codec_contexts(
-	    &pipeline->read_codecs, pipeline->read_codecs.codecs_count);
+	    &pipeline->read_codecs, pipeline->read_codecs.count);
 
-	if (pipeline->write_codecs.codecs) {
-		destroy_pipeline_write_codec_contexts(&pipeline->write_codecs,
-		    pipeline->write_codecs.codecs_count);
+	if (pipeline->write_codecs.contexts) {
+		destroy_pipeline_write_codec_contexts(
+		    &pipeline->write_codecs, pipeline->write_codecs.count);
 	}
 
 	if (pipeline->write_spans)
@@ -665,9 +693,9 @@ static ufedmd_rc_t add_pipeline_read_codecs(pipeline_t *pipeline,
 	pipeline_codec_t *found;
 	struct read_codec_contexts_set *set = &pipeline->read_codecs;
 
-	set->codecs = calloc(codec_specifiers->objs_count,
+	set->contexts = calloc(codec_specifiers->objs_count,
 	    sizeof(pipeline_read_codec_context_t *));
-	if (!set->codecs) {
+	if (!set->contexts) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
 		goto exit;
 	}
@@ -684,13 +712,13 @@ static ufedmd_rc_t add_pipeline_read_codecs(pipeline_t *pipeline,
 		 * spans it needs for proper execution.
 		 */
 		ret = add_pipeline_read_codec(pipeline,
-		    &codec_specifiers->objs[idx], found, &set->codecs[idx]);
+		    &codec_specifiers->objs[idx], found, &set->contexts[idx]);
 		if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
 			goto free_array;
 		}
 	}
 
-	set->codecs_count = codec_specifiers->objs_count;
+	set->count = codec_specifiers->objs_count;
 	UFEDMD_RC_SET_SUCCESS(ret);
 	goto exit;
 
@@ -710,9 +738,9 @@ static ufedmd_rc_t add_pipeline_write_codecs(pipeline_t *pipeline,
 	pipeline_codec_t *found;
 	struct write_codec_contexts_set *set = &pipeline->write_codecs;
 
-	set->codecs = calloc(codec_specifiers->objs_count,
+	set->contexts = calloc(codec_specifiers->objs_count,
 	    sizeof(pipeline_write_codec_context_t *));
-	if (!set->codecs) {
+	if (!set->contexts) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
 		goto exit;
 	}
@@ -729,13 +757,13 @@ static ufedmd_rc_t add_pipeline_write_codecs(pipeline_t *pipeline,
 		 * spans it needs for proper execution.
 		 */
 		ret = add_pipeline_write_codec(pipeline,
-		    &codec_specifiers->objs[idx], found, &set->codecs[idx]);
+		    &codec_specifiers->objs[idx], found, &set->contexts[idx]);
 		if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
 			goto free_array;
 		}
 	}
 
-	set->codecs_count = codec_specifiers->objs_count;
+	set->count = codec_specifiers->objs_count;
 	UFEDMD_RC_SET_SUCCESS(ret);
 	goto exit;
 
@@ -1033,6 +1061,9 @@ static ufedmd_rc_t add_pipeline_layout_parts(pipeline_t *pipeline,
 		part->in_page_range.length =
 		    cfg_page_layout_part->_range.length;
 
+		part->in_span_range.length =
+		    cfg_page_layout_part->_range.length;
+
 		part->part_idx = part_idx;
 		new_layout->parts.objs[part_idx] = part;
 	}
@@ -1090,6 +1121,7 @@ static ufedmd_rc_t add_pipeline_layout_parts(pipeline_t *pipeline,
 			}
 		}
 		span->parts.objs[span_initializer->part_idx] = part;
+		part->in_span_range.start = span->total_len;
 		span->total_len += part->in_page_range.length;
 		span_initializer->part_idx++;
 
@@ -1233,7 +1265,7 @@ static ufedmd_rc_t create_pipeline_obj(pipeline_t *obj, size_t idx,
 
 destroy_read_codecs:
 	destroy_pipeline_read_codec_contexts(
-	    &obj->read_codecs, obj->read_codecs.codecs_count);
+	    &obj->read_codecs, obj->read_codecs.count);
 free_write_spans:
 	if (obj->write_spans)
 		free(obj->write_spans);
@@ -1822,8 +1854,10 @@ ufedmd_rc_t initialize_nand_pipeline_scheme(struct nand_pipeline_scheme *scheme,
 	/* Pipeline 0 is special - it's not a pipeline that is set by the
 	 * configuration file. We need to fixup its spans' hashmap so it
 	 * can be used safely.
+	 * We also do this once (for first invocation of this function) because
+	 * the NACK pipeline is essentially a singleton.
 	 */
-	ret = fixup_pipeline0();
+	ret = fixup_pipeline0_once(mtd_info);
 	if (!UFEDMD_RC_CHECK_SUCCESS(ret)) {
 		goto exit;
 	}
