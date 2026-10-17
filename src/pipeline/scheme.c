@@ -1794,7 +1794,7 @@ static ufedmd_rc_t initialize_pipeline_selector(
 	assert(hashmap_count(scheme->partitions) != 0);
 
 	/* Optimization path - if there's only one pipeline that lies on the
-	 * entire MTD, either because of a single YAML partition object that
+	 * entire MTD, either because of a single partition object that
 	 * is not specifying any range, or lack of any partitions in the
 	 * configuration file - we can't set it so there would be a direct
 	 * selection of only one pipeline for the whole range.
