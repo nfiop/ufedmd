@@ -24,16 +24,22 @@ to experiment on.
 
 ## How can I use this program?
 
-This project is under heavy development.
-However, presumably there would be a YAML file containing the chains of
-codecs and their parameters, for read requests and write requests.
+This project is still under development, but it should work
+with some basic settings.
 
-Then, together, with incoming read and write requests, these chains will
-be invoked according to the I/O request type.
+You will need to pass a JSON file containing pipelines, codecs and
+partitions - each object with its own parameters, for I/O requests.
 
-## So what is the development plan?
+Check the files in `configs` directory to learn more about actual usage.
 
-See [development](DEVELOPMENT.md) document for more details.
+Roughly speaking - you need to invoke two commands for starting the
+program -
+
+```sh
+insmod ufedm.ko mtds=... # Insert kernel module, attaching to specific MTDs
+
+$BUILD_PATH/ufedmd /dev/ufedm_proxyX JSON_CONFIG_FILE # Replace X with number
+```
 
 ## License
 
