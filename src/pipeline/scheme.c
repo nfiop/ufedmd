@@ -32,7 +32,7 @@ extern ufedmd_rc_t init_memset_codec(pipeline_codec_t *base,
     struct proxy_mtd_info *mtd_info, struct cfg_dict *config);
 
 static const struct codec_initializer s_initializers[] = {
-    {.name = "hamming", .init = init_hamming_codec},
+    {.name = "linux-hamming", .init = init_hamming_codec},
     {.name = "memset", .init = init_memset_codec},
     {.name = "xor", .init = init_xor_codec},
 };

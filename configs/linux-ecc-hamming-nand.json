@@ -2,7 +2,7 @@
 	"codecs": [
 		{
 			"name": "hamming",
-			"type": "hamming",
+			"type": "linux-hamming",
 			"params": [
 				{
 					"key": "steps",
