@@ -360,7 +360,7 @@ static const char addressbits[256] = {0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
     0x0d, 0x0e, 0x0e, 0x0f, 0x0f, 0x0e, 0x0e, 0x0f, 0x0f};
 
 static int ecc_sw_hamming_calculate(const unsigned char *buf,
-    unsigned int step_size, unsigned char *code, bool sm_order)
+    unsigned int step_size, unsigned char *code, bool sm_order, bool big_endian)
 {
 	const u32 *bp = (uint32_t *)buf;
 	const u32 eccsize_mult = (step_size == 256) ? 1 : 2;
@@ -502,31 +502,31 @@ static int ecc_sw_hamming_calculate(const unsigned char *buf,
 	 * rp0 rp1 rp0 rp1 in big endian
 	 * First calculate rp2 and rp3
 	 */
-#ifdef __BIG_ENDIAN
-	rp2 = (par >> 16);
-	rp2 ^= (rp2 >> 8);
-	rp2 &= 0xff;
-	rp3 = par & 0xffff;
-	rp3 ^= (rp3 >> 8);
-	rp3 &= 0xff;
-#else
-	rp3 = (par >> 16);
-	rp3 ^= (rp3 >> 8);
-	rp3 &= 0xff;
-	rp2 = par & 0xffff;
-	rp2 ^= (rp2 >> 8);
-	rp2 &= 0xff;
-#endif
+	if (big_endian) {
+		rp2 = (par >> 16);
+		rp2 ^= (rp2 >> 8);
+		rp2 &= 0xff;
+		rp3 = par & 0xffff;
+		rp3 ^= (rp3 >> 8);
+		rp3 &= 0xff;
+	} else {
+		rp3 = (par >> 16);
+		rp3 ^= (rp3 >> 8);
+		rp3 &= 0xff;
+		rp2 = par & 0xffff;
+		rp2 ^= (rp2 >> 8);
+		rp2 &= 0xff;
+	}
 
 	/* reduce par to 16 bits then calculate rp1 and rp0 */
 	par ^= (par >> 16);
-#ifdef __BIG_ENDIAN
-	rp0 = (par >> 8) & 0xff;
-	rp1 = (par & 0xff);
-#else
-	rp1 = (par >> 8) & 0xff;
-	rp0 = (par & 0xff);
-#endif
+	if (big_endian) {
+		rp0 = (par >> 8) & 0xff;
+		rp1 = (par & 0xff);
+	} else {
+		rp1 = (par >> 8) & 0xff;
+		rp0 = (par & 0xff);
+	}
 
 	/* finally reduce par to 8 bits */
 	par ^= (par >> 8);
@@ -666,6 +666,7 @@ static int ecc_sw_hamming_correct(unsigned char *buf, unsigned char *read_ecc,
 struct hamming_codec_priv {
 	size_t step_size;
 	size_t steps;
+	bool big_endian;
 };
 
 static bool verify_has_enough_oob_storage_for_hamming_ecc(
@@ -702,8 +703,8 @@ static codec_transform_rc_t hamming_encode(
 	for (ecc_step_idx = 0;
 	    ecc_step_idx < div_round_up(datalen, priv->step_size);
 	    ecc_step_idx++) {
-		if (ecc_sw_hamming_calculate(
-			databuf, priv->step_size, ecccalc, false) < 0) {
+		if (ecc_sw_hamming_calculate(databuf, priv->step_size, ecccalc,
+			false, priv->big_endian) < 0) {
 			CODEC_ANSWER_NACK_WITH_RC(
 			    ret, CODEC_RC_WILL_CORRUPT_DATA_ERR);
 			goto exit;
@@ -751,7 +752,7 @@ static codec_transform_rc_t hamming_decode(
 
 	for (ecc_step_idx = 0; ecc_step_idx < priv->steps; ecc_step_idx++) {
 		stat = ecc_sw_hamming_calculate(
-		    databuf, priv->step_size, ecccalc, false);
+		    databuf, priv->step_size, ecccalc, false, priv->big_endian);
 		if (stat < 0) {
 			CODEC_ANSWER_NACK_WITH_RC(
 			    ret, CODEC_RC_DATA_RECOVERY_FAILED_ERR);
@@ -880,6 +881,19 @@ exit:
 	return ret;
 }
 
+static ufedmd_rc_t handle_big_endian_entry(pipeline_codec_t *codec, void *value)
+{
+	ufedmd_rc_t ret;
+	bool big_endian = *(bool *)value;
+	struct hamming_codec_priv *priv;
+
+	priv = codec->priv;
+	priv->big_endian = big_endian;
+
+	UFEDMD_RC_SET_SUCCESS(ret);
+	return ret;
+}
+
 static struct codec_entry_parser parsers[] = {
     {.key = "steps",
 	.required = true,
@@ -890,6 +904,11 @@ static struct codec_entry_parser parsers[] = {
 	.required = false,
 	.type = CFG_VALUE_PARAM_TYPE_UNSIGNED_INTEGER,
 	.handle = handle_step_size_entry,
+	.revert = default_revert_entry},
+    {.key = "big_endian",
+	.required = false,
+	.type = CFG_VALUE_PARAM_TYPE_BOOLEAN,
+	.handle = handle_big_endian_entry,
 	.revert = default_revert_entry},
 };
 
@@ -929,6 +948,7 @@ ufedmd_rc_t init_hamming_codec(pipeline_codec_t *base,
 	/* Set default of step size to be 256 */
 	priv = base->priv;
 	priv->step_size = 256;
+	priv->big_endian = false;
 
 	ret = create_standard_codec(base, hamming_deinit, config, parsers,
 	    ARRAY_SIZE(parsers), &hamming_write_ops, &hamming_read_ops);
