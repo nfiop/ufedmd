@@ -868,8 +868,8 @@ static ufedmd_rc_t handle_step_size_entry(pipeline_codec_t *codec, void *value)
 	unsigned int step_size = *(unsigned int *)value;
 	struct hamming_codec_priv *priv;
 
-	/* A valid step size is either 128 bytes or 256 bytes for now. */
-	if (step_size != 128 && step_size != 256) {
+	/* A valid step size is either 256 or 512 bytes for now. */
+	if (step_size != 256 && step_size != 512) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_INVALID_CODEC_PROPERTY_VALUE);
 		goto exit;
 	}
