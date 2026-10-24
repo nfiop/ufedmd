@@ -667,6 +667,7 @@ struct hamming_codec_priv {
 	size_t step_size;
 	size_t steps;
 	bool big_endian;
+	bool sm_order;
 };
 
 static bool verify_has_enough_oob_storage_for_hamming_ecc(
@@ -704,7 +705,7 @@ static codec_transform_rc_t hamming_encode(
 	    ecc_step_idx < div_round_up(datalen, priv->step_size);
 	    ecc_step_idx++) {
 		if (ecc_sw_hamming_calculate(databuf, priv->step_size, ecccalc,
-			false, priv->big_endian) < 0) {
+			priv->sm_order, priv->big_endian) < 0) {
 			CODEC_ANSWER_NACK_WITH_RC(
 			    ret, CODEC_RC_WILL_CORRUPT_DATA_ERR);
 			goto exit;
@@ -751,15 +752,15 @@ static codec_transform_rc_t hamming_decode(
 	}
 
 	for (ecc_step_idx = 0; ecc_step_idx < priv->steps; ecc_step_idx++) {
-		stat = ecc_sw_hamming_calculate(
-		    databuf, priv->step_size, ecccalc, false, priv->big_endian);
+		stat = ecc_sw_hamming_calculate(databuf, priv->step_size,
+		    ecccalc, priv->sm_order, priv->big_endian);
 		if (stat < 0) {
 			CODEC_ANSWER_NACK_WITH_RC(
 			    ret, CODEC_RC_DATA_RECOVERY_FAILED_ERR);
 			goto exit;
 		}
 		stat = ecc_sw_hamming_correct(
-		    databuf, eccbuf, ecccalc, priv->step_size, false);
+		    databuf, eccbuf, ecccalc, priv->step_size, priv->sm_order);
 		if (stat < 0) {
 			VLOG(1, stderr,
 			    "%s: uncorrectable ECC error, data dump:\n",
@@ -894,6 +895,19 @@ static ufedmd_rc_t handle_big_endian_entry(pipeline_codec_t *codec, void *value)
 	return ret;
 }
 
+static ufedmd_rc_t handle_sm_order_entry(pipeline_codec_t *codec, void *value)
+{
+	ufedmd_rc_t ret;
+	bool sm_order = *(bool *)value;
+	struct hamming_codec_priv *priv;
+
+	priv = codec->priv;
+	priv->sm_order = sm_order;
+
+	UFEDMD_RC_SET_SUCCESS(ret);
+	return ret;
+}
+
 static struct codec_entry_parser parsers[] = {
     {.key = "steps",
 	.required = true,
@@ -909,6 +923,11 @@ static struct codec_entry_parser parsers[] = {
 	.required = false,
 	.type = CFG_VALUE_PARAM_TYPE_BOOLEAN,
 	.handle = handle_big_endian_entry,
+	.revert = default_revert_entry},
+    {.key = "smart_media_order",
+	.required = false,
+	.type = CFG_VALUE_PARAM_TYPE_BOOLEAN,
+	.handle = handle_sm_order_entry,
 	.revert = default_revert_entry},
 };
 
@@ -945,10 +964,11 @@ ufedmd_rc_t init_hamming_codec(pipeline_codec_t *base,
 
 	ALLOCATE_PRIVATE_DATA_OR_FAIL(base->priv, struct hamming_codec_priv);
 
-	/* Set default of step size to be 256 */
+	/* Set default of step size to be 256 and few other flags */
 	priv = base->priv;
 	priv->step_size = 256;
 	priv->big_endian = false;
+	priv->sm_order = false;
 
 	ret = create_standard_codec(base, hamming_deinit, config, parsers,
 	    ARRAY_SIZE(parsers), &hamming_write_ops, &hamming_read_ops);
