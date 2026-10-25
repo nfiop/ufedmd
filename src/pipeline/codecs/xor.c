@@ -41,12 +41,18 @@ static codec_transform_rc_t xor_write(
 	uint8_t *byte_mask_buf;
 	uint8_t *bytebuf;
 	size_t byte_idx;
+	size_t byte_mask_idx;
 
 	byte_mask_buf = priv->byte_mask_buf;
 	bytebuf = context->destbuf;
 
+	byte_mask_idx = 0;
 	for (byte_idx = 0; byte_idx < context->destlen; byte_idx++) {
-		bytebuf[byte_idx] ^= byte_mask_buf[byte_idx];
+		bytebuf[byte_idx] ^= byte_mask_buf[byte_mask_idx];
+		++byte_mask_idx;
+		/* Roll back to the first byte in the mask if needed */
+		if (byte_mask_idx == priv->byte_mask_buf_size)
+			byte_mask_idx = 0;
 	}
 
 	CODEC_ANSWER_ACK(ret);
@@ -62,12 +68,17 @@ static codec_transform_rc_t xor_read(
 	uint8_t *byte_mask_buf;
 	uint8_t *bytebuf;
 	size_t byte_idx;
+	size_t byte_mask_idx;
 
 	byte_mask_buf = priv->byte_mask_buf;
 	bytebuf = context->databuf;
 
+	byte_mask_idx = 0;
 	for (byte_idx = 0; byte_idx < context->datalen; byte_idx++) {
-		bytebuf[byte_idx] ^= byte_mask_buf[byte_idx];
+		bytebuf[byte_idx] ^= byte_mask_buf[byte_mask_idx];
+		/* Roll back to the first byte in the mask if needed */
+		if (byte_mask_idx == priv->byte_mask_buf_size)
+			byte_mask_idx = 0;
 	}
 
 	CODEC_ANSWER_ACK(ret);
@@ -167,22 +178,45 @@ static void revert_mask_entry(pipeline_codec_t *codec)
 	priv->byte_mask_buf_size = 0;
 }
 
+static ufedmd_rc_t handle_allow_partial_chunk_entry(
+    pipeline_codec_t *codec, void *value)
+{
+	ufedmd_rc_t ret;
+	bool allow_partial_chunk = *(bool *)value;
+	struct xor_codec_priv *priv;
+
+	priv = codec->priv;
+	priv->allow_partial_chunk = allow_partial_chunk;
+
+	UFEDMD_RC_SET_SUCCESS(ret);
+	return ret;
+}
+
 static struct codec_entry_parser parsers[] = {
     {.key = "byte_pattern",
 	.required = true,
 	.type = CFG_VALUE_PARAM_TYPE_STRING,
 	.handle = handle_mask_entry,
 	.revert = revert_mask_entry},
+    {.key = "allow_partial_chunk",
+	.required = false,
+	.type = CFG_VALUE_PARAM_TYPE_BOOLEAN,
+	.handle = handle_allow_partial_chunk_entry,
+	.revert = default_revert_entry},
 };
 
 ufedmd_rc_t init_xor_codec(pipeline_codec_t *base,
     struct proxy_mtd_info *mtd_info, struct cfg_dict *config)
 {
 	ufedmd_rc_t ret;
+	struct xor_codec_priv *priv;
 
 	UNUSED(mtd_info);
 
 	ALLOCATE_PRIVATE_DATA_OR_FAIL(base->priv, struct xor_codec_priv);
+
+	priv = base->priv;
+	priv->allow_partial_chunk = false;
 
 	ret = create_standard_codec(base, xor_deinit, config, parsers,
 	    ARRAY_SIZE(parsers), &xor_write_ops, &xor_read_ops);
