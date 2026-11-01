@@ -18,6 +18,7 @@
  * a memory area and zero it afterwards.
  */
 #define zalloc_obj(__x) calloc(1, sizeof(*__x))
+#define zalloc(__sizeof) calloc(1, __sizeof)
 
 struct range {
 	uint64_t start;

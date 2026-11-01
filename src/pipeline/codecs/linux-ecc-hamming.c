@@ -820,6 +820,9 @@ static struct write_ops hamming_write_ops = {
     .validate_spans_size_sufficient =
 	hamming_validate_write_spans_size_sufficient,
 
+    .allocate_scratch_buffer = NULL,
+    .deallocate_scratch_buffer = NULL,
+
     /* Static methods */
     .needs_source_span = hamming_needs_source_span,
 };
@@ -828,6 +831,9 @@ static struct read_ops hamming_read_ops = {
     .on_read = hamming_decode,
     .validate_spans_size_sufficient =
 	hamming_validate_read_spans_size_sufficient,
+
+    .allocate_scratch_buffer = NULL,
+    .deallocate_scratch_buffer = NULL,
 
     /* Static methods */
     .needs_oob_span = hamming_needs_oob_span,

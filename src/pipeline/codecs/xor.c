@@ -135,6 +135,9 @@ static struct write_ops xor_write_ops = {
     .on_write = xor_write,
     .validate_spans_size_sufficient = xor_validate_write_spans_size_sufficient,
 
+    .allocate_scratch_buffer = NULL,
+    .deallocate_scratch_buffer = NULL,
+
     /* Static methods */
     .needs_source_span = xor_needs_source_span,
 };
@@ -142,6 +145,9 @@ static struct write_ops xor_write_ops = {
 static struct read_ops xor_read_ops = {
     .on_read = xor_read,
     .validate_spans_size_sufficient = xor_validate_read_spans_size_sufficient,
+
+    .allocate_scratch_buffer = NULL,
+    .deallocate_scratch_buffer = NULL,
 
     /* Static methods */
     .needs_oob_span = xor_needs_oob_span,

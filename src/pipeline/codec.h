@@ -42,7 +42,7 @@ typedef struct codec_rc {
 #define ALLOCATE_PRIVATE_DATA_OR_FAIL(_priv, _struct)                          \
 	do {                                                                   \
 		ufedmd_rc_t __ret;                                             \
-		_priv = calloc(1, sizeof(_struct));                            \
+		_priv = zalloc(sizeof(_struct));                               \
 		if (!_priv) {                                                  \
 			UFEDMD_RC_SET(                                         \
 			    __ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);        \
@@ -55,6 +55,16 @@ struct pipeline_codec;
 struct read_ops {
 	codec_transform_rc_t (*on_read)(
 	    struct pipeline_codec *codec, read_codec_context_t *context);
+
+	/* Some codecs need scratch buffers to operate correctly.
+	 * To ensure concurrency, we allocate them privately per context.
+	 * Most implementations could probably set the deallocate to the
+	 * free() function, as there's probably nothing special about
+	 * that part...
+	 */
+	bool (*allocate_scratch_buffer)(
+	    struct pipeline_codec *codec, void **ptr);
+	void (*deallocate_scratch_buffer)(void *ptr);
 
 	/* Except for the XOR codec, we should probably require that OOB size
 	 * isn't 0, because otherwise it's really weird and not reasonable on
@@ -73,6 +83,16 @@ struct read_ops {
 struct write_ops {
 	codec_transform_rc_t (*on_write)(
 	    struct pipeline_codec *codec, write_codec_context_t *context);
+
+	/* Some codecs need scratch buffers to operate correctly.
+	 * To ensure concurrency, we allocate them privately per context.
+	 * Most implementations could probably set the deallocate to the
+	 * free() function, as there's probably nothing special about
+	 * that part...
+	 */
+	bool (*allocate_scratch_buffer)(
+	    struct pipeline_codec *codec, void **ptr);
+	void (*deallocate_scratch_buffer)(void *ptr);
 
 	/* Some codecs don't need a source span. In such case,
 	 * We simply pass a src_span_size of 0, and ensure that

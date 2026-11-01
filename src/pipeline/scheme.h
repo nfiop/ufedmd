@@ -25,6 +25,11 @@ typedef struct {
 	 */
 	pipeline_codec_t *codec;
 
+	/* A scratch buffer is allocated in a context so it can be used
+	 * privately by a codec, without ever have a need to hold a mutex.
+	 */
+	void *scratch_buffer;
+
 	/* This is merely an array to pointers of already existing spans,
 	 * which are not owned by this struct, but the `struct pipeline_layout`
 	 * owns them.
@@ -44,6 +49,11 @@ typedef struct {
 	 * struct.
 	 */
 	pipeline_codec_t *codec;
+
+	/* A scratch buffer is allocated in a context so it can be used
+	 * privately by a codec, without ever have a need to hold a mutex.
+	 */
+	void *scratch_buffer;
 
 	/* The XOR codec doesn't need an OOB span when reading.
 	 * This pointer can be NULL, similarly to the source span in

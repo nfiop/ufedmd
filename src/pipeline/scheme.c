@@ -466,11 +466,21 @@ static void destroy_pipeline_read_codec_contexts(
     struct read_codec_contexts_set *set, size_t max_idx)
 {
 	/* The pipeline_read_codec_context_t struct doesn't own any objects
-	 * so we only release its memory storage.
+	 * besides the scratch buffer, so we free that buffer and then release
+	 * memory storage for the context.
 	 */
 	size_t idx;
+	pipeline_read_codec_context_t *context;
+
 	for (idx = 0; idx < max_idx; idx++) {
-		free(set->contexts[idx]);
+		context = set->contexts[idx];
+		if (context->scratch_buffer) {
+			assert(context->codec->read_ops
+				   ->deallocate_scratch_buffer != NULL);
+			context->codec->read_ops->deallocate_scratch_buffer(
+			    context->scratch_buffer);
+		}
+		free(context);
 	}
 	free(set->contexts);
 }
@@ -478,12 +488,22 @@ static void destroy_pipeline_read_codec_contexts(
 static void destroy_pipeline_write_codec_contexts(
     struct write_codec_contexts_set *set, size_t max_idx)
 {
-	/* The pipeline_write_codec_context_t struct doesn't own any objects
-	 * so we only release its memory storage.
+	/* The pipeline_read_codec_context_t struct doesn't own any objects
+	 * besides the scratch buffer, so we free that buffer and then release
+	 * memory storage for the context.
 	 */
 	size_t idx;
+	pipeline_write_codec_context_t *context;
+
 	for (idx = 0; idx < max_idx; idx++) {
-		free(set->contexts[idx]);
+		context = set->contexts[idx];
+		if (context->scratch_buffer) {
+			assert(context->codec->write_ops
+				   ->deallocate_scratch_buffer != NULL);
+			context->codec->write_ops->deallocate_scratch_buffer(
+			    context->scratch_buffer);
+		}
+		free(context);
 	}
 	free(set->contexts);
 }
@@ -510,6 +530,7 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
     pipeline_read_codec_context_t **codec_contextp)
 {
 	ufedmd_rc_t ret;
+	void *scratch_buffer = NULL;
 	struct pipeline_page_layout_span span;
 	struct pipeline_page_layout_span *oob_span = NULL;
 	size_t used_oob_span_size = 0;
@@ -528,10 +549,19 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
 		goto exit;
 	}
 
+	if (found->read_ops->allocate_scratch_buffer) {
+		assert(found->read_ops->deallocate_scratch_buffer != NULL);
+		if (!found->read_ops->allocate_scratch_buffer(
+			found, &scratch_buffer)) {
+			UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
+			goto free_context;
+		}
+	}
+
 	if (found->read_ops->needs_oob_span()) {
 		if (!specifier->has_valid_oob_specifier) {
 			UFEDMD_RC_SET(ret, UFEDMD_RC_MISSING_OOB_SPAN);
-			goto free_context;
+			goto free_scratch_buffer;
 		}
 
 		span.name = (char *)specifier->oob.span_name.str;
@@ -539,7 +569,7 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
 		    (void *)hashmap_get(pipeline->page_layout.spans, &span);
 		if (!hashmap_ret) {
 			UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_SPAN_NOT_FOUND);
-			goto free_context;
+			goto free_scratch_buffer;
 		}
 
 		oob_span = hashmap_ret;
@@ -559,7 +589,7 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
 	hashmap_ret = (void *)hashmap_get(pipeline->page_layout.spans, &span);
 	if (!hashmap_ret) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_SPAN_NOT_FOUND);
-		goto free_context;
+		goto free_scratch_buffer;
 	}
 
 	data_span = hashmap_ret;
@@ -577,16 +607,21 @@ static ufedmd_rc_t add_pipeline_read_codec(pipeline_t *pipeline,
 		context->in_data_span_range.length, used_oob_span_size)) {
 		UFEDMD_RC_SET(
 		    ret, UFEDMD_RC_PIPELINE_SPAN_LENGTH_BOUNDARY_INVALID);
-		goto free_context;
+		goto free_scratch_buffer;
 	}
 
 	context->codec = found;
+	context->scratch_buffer = scratch_buffer;
 	context->data_span = data_span;
 	context->oob_span = oob_span;
 	*codec_contextp = context;
 
 	UFEDMD_RC_SET_SUCCESS(ret);
 	goto exit;
+
+free_scratch_buffer:
+	if (scratch_buffer)
+		found->read_ops->deallocate_scratch_buffer(scratch_buffer);
 
 free_context:
 	free(context);
@@ -599,6 +634,7 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
     pipeline_write_codec_context_t **codec_contextp)
 {
 	ufedmd_rc_t ret;
+	void *scratch_buffer = NULL;
 	struct pipeline_page_layout_span span;
 	struct pipeline_page_layout_span *src_span = NULL;
 	size_t used_src_span_size = 0;
@@ -617,10 +653,19 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 		goto exit;
 	}
 
+	if (found->write_ops->allocate_scratch_buffer) {
+		assert(found->write_ops->deallocate_scratch_buffer != NULL);
+		if (!found->write_ops->allocate_scratch_buffer(
+			found, &scratch_buffer)) {
+			UFEDMD_RC_SET(ret, UFEDMD_RC_MEMORY_ALLOCATION_FAILED);
+			goto free_context;
+		}
+	}
+
 	if (found->write_ops->needs_source_span()) {
 		if (!specifier->src) {
 			UFEDMD_RC_SET(ret, UFEDMD_RC_MISSING_SOURCE_SPAN);
-			goto free_context;
+			goto free_scratch_buffer;
 		}
 
 		span.name = (char *)specifier->src->span_name.str;
@@ -628,7 +673,7 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 		    (void *)hashmap_get(pipeline->page_layout.spans, &span);
 		if (!hashmap_ret) {
 			UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_SPAN_NOT_FOUND);
-			goto free_context;
+			goto free_scratch_buffer;
 		}
 
 		src_span = hashmap_ret;
@@ -648,7 +693,7 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 	hashmap_ret = (void *)hashmap_get(pipeline->page_layout.spans, &span);
 	if (!hashmap_ret) {
 		UFEDMD_RC_SET(ret, UFEDMD_RC_PIPELINE_SPAN_NOT_FOUND);
-		goto free_context;
+		goto free_scratch_buffer;
 	}
 
 	dest_span = hashmap_ret;
@@ -666,10 +711,11 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 		context->in_dest_span_range.length, used_src_span_size)) {
 		UFEDMD_RC_SET(
 		    ret, UFEDMD_RC_PIPELINE_SPAN_LENGTH_BOUNDARY_INVALID);
-		goto free_context;
+		goto free_scratch_buffer;
 	}
 
 	context->codec = found;
+	context->scratch_buffer = scratch_buffer;
 	context->dest_span = dest_span;
 	context->src_span = src_span;
 	*codec_contextp = context;
@@ -677,6 +723,9 @@ static ufedmd_rc_t add_pipeline_write_codec(pipeline_t *pipeline,
 	UFEDMD_RC_SET_SUCCESS(ret);
 	goto exit;
 
+free_scratch_buffer:
+	if (scratch_buffer)
+		found->write_ops->deallocate_scratch_buffer(scratch_buffer);
 free_context:
 	free(context);
 exit:
