@@ -15,6 +15,13 @@
 
 #include "common/types.h"
 
+static inline int min(int a, int b)
+{
+	if (a > b)
+		return b;
+	return a;
+}
+
 static inline size_t div_round_up(size_t n, size_t d)
 {
 	return ((n) + (d)-1) / d;
