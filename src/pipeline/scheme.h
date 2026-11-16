@@ -14,8 +14,8 @@
 #include "pipeline/types.h"
 #include "return_codes.h"
 
-/* Kernel module headers */
-#include "proxy_ioctl.h"
+/* Imported from libufedm-dev */
+#include "proxy_dev.h"
 
 #define AUTOMATIC_NACK_PIPELINE_INDEX (0)
 

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(ufedmd C)
 
 include (libs/jansson.cmake)
+include (libs/ufedm-dev.cmake)
 
 message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "System: ${CMAKE_SYSTEM_NAME}")
@@ -25,17 +26,16 @@ set(SOURCES src/main.c
             src/pipeline/codecs/memset.c
             src/pipeline/codecs/xor.c)
 
-set(KERNEL_USER_SOURCES src/kernel/user/common/proxy_dev.c)
-
-add_executable(ufedmd ${SOURCES} ${KERNEL_USER_SOURCES})
+add_executable(ufedmd ${SOURCES})
 
 target_include_directories(ufedmd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/jansson/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/kernel/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/kernel/user/common
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/ufedm-dev
         ${JANSSON_INSTALL_DIR}/include)
 
-target_link_libraries(ufedmd PRIVATE ${JANSSON_LIBRARY})
-add_dependencies(ufedmd jansson)
+add_dependencies(ufedmd jansson ufedm-dev)
+target_link_libraries(ufedmd PRIVATE ${JANSSON_LIBRARY} ${UFEDM_DEV_LIBRARY})
+
 target_compile_options(ufedmd PRIVATE -Wall -Wextra -Werror)
 target_link_options(ufedmd PRIVATE -static)
 
@@ -43,7 +43,3 @@ target_link_options(ufedmd PRIVATE -static)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(ufedmd PRIVATE -O0 -g)
 endif()
-
-# Compile the kernel module as well, with the configured toolchain, etc
-add_subdirectory(src/kernel)
-

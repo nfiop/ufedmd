@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Kernel module headers */
-#include "proxy_ioctl.h"
+/* Imported from libufedm-dev */
+#include "proxy_dev.h"
 
 #include "pipeline/page_layout.h"
 

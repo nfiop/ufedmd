@@ -1,6 +1,6 @@
-[submodule "src/kernel"]
-	path = src/kernel
-	url = https://github.com/nfiop/ufedm.git
 [submodule "libs/jansson"]
 	path = libs/jansson
 	url = https://github.com/akheron/jansson.git
+[submodule "libs/ufedmdev"]
+	path = libs/ufedm-dev
+	url = https://github.com/nfiop/libufedm-dev

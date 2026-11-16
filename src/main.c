@@ -22,9 +22,8 @@
 #include <time.h>
 #include <unistd.h>
 
-/* Kernel module headers */
-#include "proxy_ioctl.h"
-#include "shared_mem.h"
+/* Imported from libufedm-dev */
+#include "proxy_dev.h"
 
 #include "common/parse.h"
 #include "common/program_params.h"

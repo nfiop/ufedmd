@@ -30,8 +30,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "defs.h"
-
 #include "common/array.h"
 #include "common/ints.h"
 #include "config/objs/codec.h"
@@ -42,9 +40,6 @@
 
 #include "common/logging.h"
 #include "common/parse.h"
-
-/* Kernel module headers */
-#include "proxy_ioctl.h"
 
 #include <assert.h>
 
