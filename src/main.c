@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 		goto exit;
 	}
 
-	ret = open_proxy_device_state(prog_params.device_path, &g_device_state);
+	ret = proxy_device_open(prog_params.device_path, &g_device_state);
 	if (ret < 0) {
 		fprintf(stderr, "Failed to open %s: %s\n",
 		    prog_params.device_path, strerror(-ret));
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 destroy_configuration_scheme:
 	destroy_cfg_scheme(&g_cfg_scheme);
 destroy_proxy_device_state:
-	close_proxy_device(&g_device_state);
+	proxy_device_close(&g_device_state);
 exit:
 	return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

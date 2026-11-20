@@ -325,7 +325,7 @@ int create_queues()
 	    .read = read_process,
 	};
 
-	queues_initialized_count = initialize_proxy_dev_queues(&g_device_state,
+	queues_initialized_count = proxy_device_initialize_queues(&g_device_state,
 	    queues, PROXY_MAX_QUEUES_COUNT, &ops, __thread_priv_create,
 	    __thread_priv_teardown);
 
@@ -338,6 +338,6 @@ void destroy_queues()
 {
 	int i;
 	for (i = 0; i < queues_initialized_count; i++) {
-		destroy_proxy_dev_queue_state(&queues[i]);
+		proxy_device_destroy_queue_state(&queues[i]);
 	}
 }
