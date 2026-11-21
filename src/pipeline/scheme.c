@@ -13,6 +13,7 @@
 
 #include "common/array.h"
 #include "common/hashmap.h"
+#include "common/macros.h"
 
 #include "common/ints.h"
 #include "pipeline/context.h"

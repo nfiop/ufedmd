@@ -9,6 +9,8 @@
 #include "config/return_codes.h"
 #include "config/types.h"
 
+#include "common/range.h"
+
 #include <jansson.h>
 
 #define RELEASE_JSON_OBJECT(__json_obj)                                        \

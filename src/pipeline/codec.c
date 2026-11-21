@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "common/macros.h"
 #include "pipeline/codec.h"
 
 ufedmd_rc_t create_standard_codec(pipeline_codec_t *codec,

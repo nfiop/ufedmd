@@ -6,7 +6,7 @@
 #ifndef __CFG__OBJS_PARTITION_H_
 #define __CFG__OBJS_PARTITION_H_
 
-#include "common/types.h"
+#include "common/range.h"
 #include "config/types.h"
 
 struct cfg_partition_obj {

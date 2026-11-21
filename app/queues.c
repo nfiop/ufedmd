@@ -8,7 +8,12 @@
 #include <string.h>
 
 #include "common/logging.h"
-#include "pipeline/queues.h"
+
+/* Imported from libufedm-dev */
+#include "proxy_dev.h"
+
+/* Application headers */
+#include "queues.h"
 
 extern struct cfg_scheme g_cfg_scheme;
 extern struct proxy_device_state g_device_state;
@@ -325,9 +330,9 @@ int create_queues()
 	    .read = read_process,
 	};
 
-	queues_initialized_count = proxy_device_initialize_queues(&g_device_state,
-	    queues, PROXY_MAX_QUEUES_COUNT, &ops, __thread_priv_create,
-	    __thread_priv_teardown);
+	queues_initialized_count = proxy_device_initialize_queues(
+	    &g_device_state, queues, PROXY_MAX_QUEUES_COUNT, &ops,
+	    __thread_priv_create, __thread_priv_teardown);
 
 	if (queues_initialized_count < 0)
 		return queues_initialized_count;

@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 #include "pipeline/scheme.h"
-#include "proxy_dev.h"
 
 int create_queues(void);
 void destroy_queues(void);

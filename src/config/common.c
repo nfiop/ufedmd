@@ -6,12 +6,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "common.h"
-#include "common/types.h"
+#include "common/range.h"
 #include "config/common.h"
 #include "config/return_codes.h"
 #include "config/types.h"
-#include "return_codes.h"
+#include "ufedmd_return_codes.h"
 #include <jansson.h>
 
 json_t *get_json_string_by_key(json_t *obj, const char *key)

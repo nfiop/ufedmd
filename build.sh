@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 BUILDROOT_DIR="${BUILDROOT_DIR:-}"
 
+ENABLE_LIBRARY_MODE=false
+
 clean() {
     rm -rf "$ROOT_DIR/build/"
  
@@ -20,6 +22,9 @@ Usage:
 
   Buildroot build (cross-compile with buildroot environment):
     ./build.sh --buildroot /path/to/buildroot
+
+  Library mode (Build a library archive to be linked with):
+    ./build.sh --library-mode
 
 Optional commands:
 
@@ -42,6 +47,10 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --library-mode)
+            ENABLE_LIBRARY_MODE=true
+            shift 1
+            ;;
         --buildroot)
             BUILDROOT_DIR="$2"
             shift 2
@@ -184,6 +193,12 @@ fi
 CMAKE_ARGS+=(
     "-DTOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX}"
 )
+
+if $ENABLE_LIBRARY_MODE; then
+    CMAKE_ARGS+=(
+        "-DBUILD_STANDALONE=OFF"
+    )
+fi
 
 cmake "${CMAKE_ARGS[@]}"
 

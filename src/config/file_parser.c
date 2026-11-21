@@ -9,6 +9,9 @@
 #include <stdlib.h>
 
 #include "common/array.h"
+#include "common/macros.h"
+#include "common/range.h"
+
 #include "config/common.h"
 #include "config/file_parser.h"
 #include "config/return_codes.h"

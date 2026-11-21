@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #include "common/hashmap.h"
-#include "common/types.h"
+#include "common/range.h"
 
 struct pipeline_page_layout_span;
 

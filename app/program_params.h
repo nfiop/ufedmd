@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+
 struct program_params {
 	int verbose;
 	bool exit_on_error;

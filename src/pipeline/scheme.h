@@ -12,7 +12,7 @@
 #include "pipeline/codec.h"
 #include "pipeline/page_layout.h"
 #include "pipeline/types.h"
-#include "return_codes.h"
+#include "ufedmd_return_codes.h"
 
 /* Imported from libufedm-dev */
 #include "proxy_dev.h"

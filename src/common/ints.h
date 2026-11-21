@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "common/types.h"
+#include "common/byte_array.h"
 
 static inline int min(int a, int b)
 {
@@ -133,6 +133,11 @@ static inline bool addition_u64_would_overflow(uint64_t a, uint64_t b)
 	return b > UINT64_MAX - a;
 }
 
+static inline bool addition_u32_would_overflow(uint64_t a, uint64_t b)
+{
+	return b > UINT32_MAX - a;
+}
+
 /* TODO: Convert this into static_assert once we don't need to worry
  * about old compilers. For example, ARM buildroot GCC 14.3.0 complains
  * about it.
@@ -144,6 +149,13 @@ static inline bool multiplication_size_t_would_overflow(size_t a, size_t b)
 	if (sizeof(size_t) == 4)
 		return multiplication_u32_would_overflow(a, b);
 	return multiplication_u64_would_overflow(a, b);
+}
+
+static inline bool addition_size_t_would_overflow(size_t a, size_t b)
+{
+	if (sizeof(size_t) == 4)
+		return addition_u32_would_overflow(a, b);
+	return addition_u64_would_overflow(a, b);
 }
 
 #endif

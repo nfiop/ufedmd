@@ -3,8 +3,8 @@
  * Copyright (c) 2026 Liav A
  */
 
-#ifndef __COMMON__TYPES_H_
-#define __COMMON__TYPES_H_
+#ifndef __COMMON__MACROS_H_
+#define __COMMON__MACROS_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,21 +19,5 @@
  */
 #define zalloc_obj(__x) calloc(1, sizeof(*__x))
 #define zalloc(__sizeof) calloc(1, __sizeof)
-
-struct range {
-	uint64_t start;
-	uint64_t length;
-};
-
-static inline void copy_range_object(struct range *from, struct range *to)
-{
-	to->start = from->start;
-	to->length = from->length;
-}
-
-struct byte_array {
-	uint8_t *buf;
-	size_t length;
-};
 
 #endif

@@ -8,9 +8,10 @@
 #include "config/return_codes.h"
 #include "config/scheme.h"
 
-#include <string.h>
+#include "common/macros.h"
 
 #include <jansson.h>
+#include <string.h>
 
 static void destroy_layout_part(struct cfg_page_layout_part_obj *obj)
 {

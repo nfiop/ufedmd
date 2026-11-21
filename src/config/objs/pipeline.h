@@ -8,6 +8,8 @@
 
 #include "config/types.h"
 
+#include "common/range.h"
+
 struct cfg_page_layout_part_obj {
 	cfg_str_param_t part_name;
 	cfg_str_param_t span_name;

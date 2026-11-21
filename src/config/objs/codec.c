@@ -8,6 +8,8 @@
 #include "config/return_codes.h"
 #include "config/scheme.h"
 
+#include "common/macros.h"
+
 #include <string.h>
 
 #include <jansson.h>

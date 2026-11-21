@@ -12,7 +12,10 @@
 #include "pipeline/codecs/return_codes.h"
 #include "pipeline/context.h"
 #include "pipeline/types.h"
-#include "return_codes.h"
+#include "ufedmd_return_codes.h"
+
+#include "common/macros.h"
+#include "common/range.h"
 
 typedef struct codec_rc {
 	codec_rc_enum_t rc;

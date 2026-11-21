@@ -14,10 +14,10 @@
 #include "config/objs/codec.h"
 #include "pipeline/codec.h"
 #include "pipeline/types.h"
-#include "return_codes.h"
+#include "ufedmd_return_codes.h"
 
 #include "common/logging.h"
-#include "common/parse.h"
+#include "common/macros.h"
 
 #include <assert.h>
 

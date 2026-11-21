@@ -7,9 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/program_params.h"
 #include "params.h"
+#include "program_params.h"
 
+extern int verbose_level;
 extern struct program_params prog_params;
 
 static struct option long_options[] = {{"help", no_argument, 0, 'h'},
@@ -87,5 +88,7 @@ int handle_params(int argc, char **argv)
 
 	prog_params.device_path = argv[optind];
 	prog_params.config_path = argv[optind + 1];
+
+	verbose_level = prog_params.verbose;
 	return 0;
 }

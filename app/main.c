@@ -25,17 +25,18 @@
 /* Imported from libufedm-dev */
 #include "proxy_dev.h"
 
-#include "common/parse.h"
-#include "common/program_params.h"
 #include "config/common.h"
 #include "config/file_parser.h"
-#include "pipeline/queues.h"
 #include "pipeline/scheme.h"
-#include "return_codes.h"
+#include "ufedmd_return_codes.h"
 
+/* Application headers */
 #include "params.h"
+#include "program_params.h"
+#include "queues.h"
 
 /* Externally recognized, so let's make it truly global. */
+int verbose_level;
 struct program_params prog_params;
 struct cfg_scheme g_cfg_scheme;
 struct proxy_device_state g_device_state;

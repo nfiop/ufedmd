@@ -6,7 +6,6 @@
 #ifndef __CFG__TYPES_H_
 #define __CFG__TYPES_H_
 
-#include <common/types.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
