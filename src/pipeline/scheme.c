@@ -11,13 +11,13 @@
 
 #include <assert.h>
 
-#include "common/array.h"
-#include "common/hashmap.h"
-#include "common/macros.h"
+#include "ufedmd-common/array.h"
+#include "ufedmd-common/hashmap.h"
+#include "ufedmd-common/macros.h"
 
-#include "common/ints.h"
 #include "pipeline/context.h"
 #include "pipeline/scheme.h"
+#include "ufedmd-common/ints.h"
 
 struct codec_initializer {
 	char *name;

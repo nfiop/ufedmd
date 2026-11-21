@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "common/hashmap.h"
 #include "config/cfg_types.h"
+#include "ufedmd-common/hashmap.h"
 
 typedef struct cfg_string_param {
 	char *str;

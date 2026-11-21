@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/array.h"
-#include "common/macros.h"
-#include "common/range.h"
+#include "ufedmd-common/array.h"
+#include "ufedmd-common/macros.h"
+#include "ufedmd-common/range.h"
 
 #include "config/common.h"
 #include "config/file_parser.h"

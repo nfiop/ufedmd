@@ -6,8 +6,8 @@
 #ifndef __CFG__OBJS_PARTITION_H_
 #define __CFG__OBJS_PARTITION_H_
 
-#include "common/range.h"
 #include "config/types.h"
+#include "ufedmd-common/range.h"
 
 struct cfg_partition_obj {
 	cfg_str_param_t name;

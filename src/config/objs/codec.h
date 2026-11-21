@@ -8,7 +8,7 @@
 
 #include "config/types.h"
 
-#include "common/range.h"
+#include "ufedmd-common/range.h"
 
 typedef struct cfg_range_object {
 	cfg_str_param_t span_name;

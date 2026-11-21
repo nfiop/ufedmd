@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(SOURCES src/common/hashmap.c
-            src/common/logging.c
+set(SOURCES src/ufedmd-common/hashmap.c
+            src/ufedmd-common/logging.c
             src/config/common.c
             src/config/file_parser.c
             src/config/objs/codec.c

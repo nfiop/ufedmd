@@ -9,15 +9,15 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "common/array.h"
-#include "common/ints.h"
 #include "config/objs/codec.h"
 #include "pipeline/codec.h"
 #include "pipeline/types.h"
+#include "ufedmd-common/array.h"
+#include "ufedmd-common/ints.h"
 #include "ufedmd_return_codes.h"
 
-#include "common/logging.h"
-#include "common/macros.h"
+#include "ufedmd-common/logging.h"
+#include "ufedmd-common/macros.h"
 
 #include <assert.h>
 

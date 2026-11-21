@@ -8,7 +8,7 @@
 #include "config/return_codes.h"
 #include "config/scheme.h"
 
-#include "common/macros.h"
+#include "ufedmd-common/macros.h"
 
 #include <jansson.h>
 #include <string.h>

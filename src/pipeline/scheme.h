@@ -6,12 +6,12 @@
 #ifndef __PIPELINE_SCHEME__H_
 #define __PIPELINE_SCHEME__H_
 
-#include "common/hashmap.h"
 #include "config/scheme.h"
 #include "config/types.h"
 #include "pipeline/codec.h"
 #include "pipeline/page_layout.h"
 #include "pipeline/types.h"
+#include "ufedmd-common/hashmap.h"
 #include "ufedmd_return_codes.h"
 
 /* Imported from libufedm-dev */

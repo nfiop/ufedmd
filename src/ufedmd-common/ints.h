@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "common/byte_array.h"
+#include "ufedmd-common/byte_array.h"
 
 static inline int min(int a, int b)
 {

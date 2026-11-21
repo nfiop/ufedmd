@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "common/logging.h"
+#include "ufedmd-common/logging.h"
 
 /* Imported from libufedm-dev */
 #include "proxy_dev.h"

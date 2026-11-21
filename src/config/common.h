@@ -9,7 +9,7 @@
 #include "config/return_codes.h"
 #include "config/types.h"
 
-#include "common/range.h"
+#include "ufedmd-common/range.h"
 
 #include <jansson.h>
 

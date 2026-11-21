@@ -14,8 +14,8 @@
 #include "pipeline/types.h"
 #include "ufedmd_return_codes.h"
 
-#include "common/macros.h"
-#include "common/range.h"
+#include "ufedmd-common/macros.h"
+#include "ufedmd-common/range.h"
 
 typedef struct codec_rc {
 	codec_rc_enum_t rc;

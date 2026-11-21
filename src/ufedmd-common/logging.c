@@ -3,7 +3,7 @@
  * Copyright (c) 2026 Liav A
  */
 
-#include "common/logging.h"
+#include "ufedmd-common/logging.h"
 
 #include <ctype.h>
 

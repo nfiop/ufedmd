@@ -6,8 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include "common/macros.h"
 #include "pipeline/codec.h"
+#include "ufedmd-common/macros.h"
 
 ufedmd_rc_t create_standard_codec(pipeline_codec_t *codec,
     void (*deinit_callback)(struct pipeline_codec *), struct cfg_dict *config,

@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "common/hashmap.h"
-#include "common/range.h"
+#include "ufedmd-common/hashmap.h"
+#include "ufedmd-common/range.h"
 
 struct pipeline_page_layout_span;
 

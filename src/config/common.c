@@ -6,10 +6,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "common/range.h"
 #include "config/common.h"
 #include "config/return_codes.h"
 #include "config/types.h"
+#include "ufedmd-common/range.h"
 #include "ufedmd_return_codes.h"
 #include <jansson.h>
 
