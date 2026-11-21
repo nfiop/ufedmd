@@ -198,6 +198,10 @@ if $ENABLE_LIBRARY_MODE; then
     CMAKE_ARGS+=(
         "-DBUILD_STANDALONE=OFF"
     )
+else
+    CMAKE_ARGS+=(
+        "-DBUILD_STANDALONE=ON"
+    )
 fi
 
 cmake "${CMAKE_ARGS[@]}"
