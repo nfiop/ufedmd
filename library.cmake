@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-include (libs/jansson.cmake)
-include (libs/ufedm-dev.cmake)
-
 set(SOURCES src/common/hashmap.c
             src/common/logging.c
             src/config/common.c
@@ -24,8 +21,4 @@ target_include_directories(ufedmd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/janss
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/ufedm-dev
         ${JANSSON_INSTALL_DIR}/include)
 
-add_dependencies(ufedmd jansson ufedm-dev)
-target_link_libraries(ufedmd PRIVATE ${JANSSON_LIBRARY} ${UFEDM_DEV_LIBRARY})
-
-target_compile_options(ufedmd PRIVATE -Wall -Wextra -Werror)
 target_link_options(ufedmd PRIVATE -static)

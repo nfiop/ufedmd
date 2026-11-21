@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-include (libs/jansson.cmake)
-include (libs/ufedm-dev.cmake)
-
 set(SOURCES app/main.c
             app/params.c
             app/queues.c
@@ -27,9 +24,3 @@ target_include_directories(ufedmd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/janss
         ${CMAKE_CURRENT_SOURCE_DIR}/app
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/ufedm-dev
         ${JANSSON_INSTALL_DIR}/include)
-
-add_dependencies(ufedmd jansson ufedm-dev)
-target_link_libraries(ufedmd PRIVATE ${JANSSON_LIBRARY} ${UFEDM_DEV_LIBRARY})
-
-target_compile_options(ufedmd PRIVATE -Wall -Wextra -Werror)
-
