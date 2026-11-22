@@ -11,6 +11,7 @@ set(SOURCES app/main.c
             src/config/objs/pipeline.c
             src/config/objs/partition.c
             src/pipeline/scheme.c
+            src/pipeline/standard_pipeline.c
             src/pipeline/codec.c
             src/pipeline/page_layout.c
             src/pipeline/codecs/linux-ecc-hamming.c

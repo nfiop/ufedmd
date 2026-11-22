@@ -81,4 +81,12 @@ int validate_range_length_within_span(
 int calculate_real_range_length_within_span(
     size_t *lenp, size_t total_buf_length, struct range *range);
 
+void extract_raw_page_to_pipeline_page_layout(
+    struct pipeline_page_layout *page_layout, uint8_t *raw_page_buf,
+    size_t buf_size);
+
+void compose_raw_page_from_pipeline_page_layout(
+    struct pipeline_page_layout *page_layout, uint8_t *raw_page_buf,
+    size_t buf_size);
+
 #endif
