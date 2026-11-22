@@ -4,7 +4,7 @@
  */
 
 #include "pipeline/page_layout.h"
-#include <asm-generic/errno.h>
+#include <errno.h>
 
 int validate_range_length_within_span(
     size_t total_span_length, struct range *range)

@@ -6,7 +6,6 @@
 #ifndef __COMMON_INTS__H_
 #define __COMMON_INTS__H_
 
-#include <asm-generic/errno.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stddef.h>

@@ -3,7 +3,6 @@
  * Copyright (c) 2026 Liav A
  */
 
-#include <asm-generic/errno.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
