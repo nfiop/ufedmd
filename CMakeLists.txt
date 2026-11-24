@@ -36,6 +36,12 @@ add_dependencies(ufedmd jansson ufedm-dev)
 target_link_libraries(ufedmd PRIVATE ${JANSSON_LIBRARY} ${UFEDM_DEV_LIBRARY})
 target_compile_options(ufedmd PRIVATE -Wall -Wextra -Werror)
 
+install(TARGETS ufedmd
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
 # Optional: debug build support
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(ufedmd PRIVATE -O0 -g)
