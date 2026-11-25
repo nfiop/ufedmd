@@ -72,7 +72,7 @@ ExternalProject_Add(jansson
         TRUE
 
     BUILD_ALWAYS
-        TRUE
+        FALSE
 )
 
 set(JANSSON_LIBRARY "${JANSSON_INSTALL_DIR}/lib/libjansson.a")
